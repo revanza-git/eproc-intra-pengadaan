@@ -98,7 +98,7 @@
 
 					<?php 
 					$penilaian = array('scoring'=>'Scoring','non_scoring'=>'Non-Scoring');
-					echo $penilaian[$evaluation_method];
+					echo isset($evaluation_method) && isset($penilaian[$evaluation_method]) ? $penilaian[$evaluation_method] : '-';
 					?>
 				</td>
 			</tr>

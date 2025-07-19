@@ -112,7 +112,7 @@
 
 									<?php //foreach($pengadaan as $key => $row){ ?>
 
-										<!-- <td class="graph" title="<?php echo $row['value'];?> (Tanggal : <?php echo default_date($row['date'])?>) " style="width:<?php echo $row['percent'];?>%;background: <?php echo $row['color'];?>"></td>
+										<!-- <td class="graph" title="<?php //echo $row['value'];?> (Tanggal : <?php //echo default_date($row['date'])?>) " style="width:<?php //echo $row['percent'];?>%;background: <?php //echo $row['color'];?>"></td>
  -->
 									<?php //} ?>
 
@@ -134,7 +134,7 @@
 
 						<?php //foreach($pengadaan as $_key => $_row){ ?>
 
-						<!-- <li style="margin-bottom: 5px; padding-left: 10px; border-left: 15px solid <?php echo $_row['color'];?>;"><?php echo $_row['value'];?></li> -->
+						<!-- <li style="margin-bottom: 5px; padding-left: 10px; border-left: 15px solid <?php //echo $_row['color'];?>;"><?php //echo $_row['value'];?></li> -->
 
 						<?php //} ?>
 

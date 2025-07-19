@@ -4,6 +4,7 @@ class Pengadaan extends CI_Controller {
 
 	public $id_pengadaan;
 	public $tabNav;
+	public $progressNav;
 
 	public function __construct(){
 		parent::__construct();
@@ -80,6 +81,9 @@ class Pengadaan extends CI_Controller {
 							);
 		}
 		$this->tabNav = $array;
+		
+		// Initialize progressNav as empty array - can be populated as needed
+		$this->progressNav = array();
 	}
 
 	
