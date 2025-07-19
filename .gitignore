@@ -13,6 +13,7 @@ logs/*
 # Environment files
 .env
 .env.*
+!.env.example
 
 # Composer vendor directory
 vendor/
