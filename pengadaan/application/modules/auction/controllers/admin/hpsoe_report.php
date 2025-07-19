@@ -10,7 +10,9 @@ class Hpsoe_report extends CI_Controller{
 	function index(){
 		//if($_POST['is_public']) 
 
-		if($_POST['custom-name-komag']) $_POST['komag-search-nama'] = $_POST['custom-name-komag'];
+		if(isset($_POST['custom-name-komag']) && $_POST['custom-name-komag']) {
+			$_POST['komag-search-nama'] = $_POST['custom-name-komag'];
+		}
 		$_SESSION['hpsoe_pgn_report_cart'][] = $_POST;
 		$data['query'] = $_SESSION['hpsoe_pgn_report_cart'];
 		

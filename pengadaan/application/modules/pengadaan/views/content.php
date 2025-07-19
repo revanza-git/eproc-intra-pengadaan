@@ -27,13 +27,13 @@
 	<table class="tableData">
 		<thead>
 			<tr>
-				<td><a href="?<?php echo $this->utility->generateLink('sort','desc')?>&sort=<?php echo ($sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>&by=ms_procurement.name">Nama Pengadaan<i class="fa fa-sort-<?php echo ($sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>"></i></a></td>
-				<td style="width: 120px"><a href="?<?php echo $this->utility->generateLink('sort','desc')?>&sort=<?php echo ($sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>&by=ms_procurement.name">Jenis Pengadaan<i class="fa fa-sort-<?php echo ($sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>"></i></a></td>
-				<td style="width: auto"><a href="?<?php echo $this->utility->generateLink('sort','desc')?>&sort=<?php echo ($sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>&by=ms_procurement.name">NPWP<i class="fa fa-sort-<?php echo ($sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>"></i></a></td>
-				<td style="width: 150px"><a href="?<?php echo $this->utility->generateLink('sort','desc')?>&sort=<?php echo ($sort['pemenang'] == 'asc') ? 'desc' : 'asc'; ?>&by=pemenang">Nama Pemenang Sesuai Kontrak<i class="fa fa-sort-<?php echo ($sort['pemenang'] == 'asc') ? 'desc' : 'asc'; ?>"></i></a></td>
-				<td style="width: auto"><a href="?<?php echo $this->utility->generateLink('sort','desc')?>&sort=<?php echo ($sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>&by=ms_procurement.name">Nilai<i class="fa fa-sort-<?php echo ($sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>"></i></a></td>
-				<td style="width: 50px"><a href="?<?php echo $this->utility->generateLink('sort','desc')?>&sort=<?php echo ($sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>&by=ms_procurement.name">Status<i class="fa fa-sort-<?php echo ($sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>"></i></a></td>
-				<td style="width: 50px"><a href="?<?php echo $this->utility->generateLink('sort','desc')?>&sort=<?php echo ($sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>&by=ms_procurement.budget_year">Tahun<i class="fa fa-sort-<?php echo ($sort['ms_procurement.budget_year'] == 'asc') ? 'desc' : 'asc'; ?>"></i></a></td>
+				<td><a href="?<?php echo $this->utility->generateLink('sort','desc')?>&sort=<?php echo (isset($sort['ms_procurement.name']) && $sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>&by=ms_procurement.name">Nama Pengadaan<i class="fa fa-sort-<?php echo (isset($sort['ms_procurement.name']) && $sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>"></i></a></td>
+				<td style="width: 120px"><a href="?<?php echo $this->utility->generateLink('sort','desc')?>&sort=<?php echo (isset($sort['ms_procurement.name']) && $sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>&by=ms_procurement.name">Jenis Pengadaan<i class="fa fa-sort-<?php echo (isset($sort['ms_procurement.name']) && $sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>"></i></a></td>
+				<td style="width: auto"><a href="?<?php echo $this->utility->generateLink('sort','desc')?>&sort=<?php echo (isset($sort['ms_procurement.name']) && $sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>&by=ms_procurement.name">NPWP<i class="fa fa-sort-<?php echo (isset($sort['ms_procurement.name']) && $sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>"></i></a></td>
+				<td style="width: 150px"><a href="?<?php echo $this->utility->generateLink('sort','desc')?>&sort=<?php echo (isset($sort['pemenang']) && $sort['pemenang'] == 'asc') ? 'desc' : 'asc'; ?>&by=pemenang">Nama Pemenang Sesuai Kontrak<i class="fa fa-sort-<?php echo (isset($sort['pemenang']) && $sort['pemenang'] == 'asc') ? 'desc' : 'asc'; ?>"></i></a></td>
+				<td style="width: auto"><a href="?<?php echo $this->utility->generateLink('sort','desc')?>&sort=<?php echo (isset($sort['ms_procurement.name']) && $sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>&by=ms_procurement.name">Nilai<i class="fa fa-sort-<?php echo (isset($sort['ms_procurement.name']) && $sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>"></i></a></td>
+				<td style="width: 50px"><a href="?<?php echo $this->utility->generateLink('sort','desc')?>&sort=<?php echo (isset($sort['ms_procurement.name']) && $sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>&by=ms_procurement.name">Status<i class="fa fa-sort-<?php echo (isset($sort['ms_procurement.name']) && $sort['ms_procurement.name'] == 'asc') ? 'desc' : 'asc'; ?>"></i></a></td>
+				<td style="width: 50px"><a href="?<?php echo $this->utility->generateLink('sort','desc')?>&sort=<?php echo (isset($sort['ms_procurement.budget_year']) && $sort['ms_procurement.budget_year'] == 'asc') ? 'desc' : 'asc'; ?>&by=ms_procurement.budget_year">Tahun<i class="fa fa-sort-<?php echo (isset($sort['ms_procurement.budget_year']) && $sort['ms_procurement.budget_year'] == 'asc') ? 'desc' : 'asc'; ?>"></i></a></td>
 				<?php if ($admin['id_role'] == 8) { ?>	
 				<td>Last Edited</td>
 				<?php }?>
@@ -44,23 +44,23 @@
 		<?php 
 		if(count($pengadaan_list)){
 			foreach($pengadaan_list as $row => $value){
-				if ($value['symbol'] == null || $value['symbol'] == 'IDR') {
-					$symbol = 'Rp. ';
-				} else {
-					$symbol = $value['symbol'].' ';
-				}
+							if (!isset($value['symbol']) || $value['symbol'] == null || $value['symbol'] == 'IDR') {
+				$symbol = 'Rp. ';
+			} else {
+				$symbol = $value['symbol'].' ';
+			}
 		?>
 				<tr>
 					<td><?php echo $value['name'];?></td>
 					<td><?php echo $value['mekanisme_name'];?></td>
 					<td><?php echo $value['npwp_code'];?></td>
 					<td><?php echo $value['pemenang'];?></td>
-					<?php if ($value['contract_price'] != '') { ?>
+					<?php if (isset($value['contract_price']) && $value['contract_price'] != '') { ?>
 					<td><?php echo $symbol.number_format($value['contract_price']);?></td>	
 					<?php } else {?>
-					<td><?php echo $symbol.number_format($value['nilai']).' (Nilai HPS)';?></td>
+					<td><?php echo $symbol.number_format(isset($value['nilai']) ? $value['nilai'] : 0).' (Nilai HPS)';?></td>
 					<?php } ?>
-					<td><?php echo $value['status'];?></td>
+					<td><?php echo isset($value['status']) ? $value['status'] : '-';?></td>
 					<td><?php echo $value['budget_year'];?></td>
 					
 					<?php if ($admin['id_role'] == 8) { ?>

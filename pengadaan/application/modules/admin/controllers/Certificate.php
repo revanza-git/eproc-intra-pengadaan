@@ -49,8 +49,11 @@ class certificate extends CI_Controller{
 		$data['ms_quest']		= $this->km->get_master_header();
 		$data['csms_limit']		= $this->km->get_csms_limit($id);
 		$data['data_poin']		= $this->km->get_poin($id);
-		$data['csms_file'] 		= $this->km->get_k3_all_data($id)['csms_file'];
-		$data['value_k3']		= $this->km->get_penilaian_value($id,$data['csms_file']['id']);
+		$k3_all_data = $this->km->get_k3_all_data($id);
+		$data['csms_file'] = isset($k3_all_data['csms_file']) ? $k3_all_data['csms_file'] : array();
+		
+		$csms_file_id = !empty($data['csms_file']) && isset($data['csms_file']['id']) ? $data['csms_file']['id'] : 0;
+		$data['value_k3'] = $this->km->get_penilaian_value($id, $csms_file_id);
 
 		///print_r($data);die;
 		$first_date = strtotime($data['vendor']['first_date']);
@@ -245,7 +248,7 @@ class certificate extends CI_Controller{
 
 		#print K3 DATA
 		$k3_data="";
-		if ($data['get_csms']['value']!="") {
+		if (isset($data['get_csms']['value']) && $data['get_csms']['value'] != "") {
 			/*$k3_data = '<div class="page second-page" style="margin: 0 auto; page-break-inside: avoid;">
 							<div class="rekapContainer">
 								<h2 align=center>REKAP NILAI HASIL PRAKUALIFIKASI DOKUMEN CSMS</h2>
@@ -282,7 +285,9 @@ class certificate extends CI_Controller{
 						</div>';*/
 		}
 
-		if($data['data_poin']['score']>0){
+		// Initialize skor_csms variable
+		$skor_csms = '';
+		if(isset($data['data_poin']['score']) && $data['data_poin']['score'] > 0){
 			$skor_csms		= ' <tr>
 													
 										<td>Skor CSMS</td>
@@ -635,8 +640,11 @@ class certificate extends CI_Controller{
 		$data['ms_quest']		= $this->km->get_master_header();
 		$data['csms_limit']		= $this->km->get_csms_limit($id);
 		$data['data_poin']		= $this->km->get_poin($id);
-		$data['csms_file'] 		= $this->km->get_k3_all_data($id)['csms_file'];
-		$data['value_k3']		= $this->km->get_penilaian_value($id,$data['csms_file']['id']);
+		$k3_all_data = $this->km->get_k3_all_data($id);
+		$data['csms_file'] = isset($k3_all_data['csms_file']) ? $k3_all_data['csms_file'] : array();
+		
+		$csms_file_id = !empty($data['csms_file']) && isset($data['csms_file']['id']) ? $data['csms_file']['id'] : 0;
+		$data['value_k3'] = $this->km->get_penilaian_value($id, $csms_file_id);
 
 		///print_r($data);die;
 		$first_date = strtotime($data['vendor']['first_date']);
@@ -827,7 +835,7 @@ class certificate extends CI_Controller{
 
 		#print K3 DATA
 		$k3_data="";
-		if ($data['get_csms']['value']!="") {
+		if (isset($data['get_csms']['value']) && $data['get_csms']['value'] != "") {
 			/*$k3_data = '<div class="page second-page" style="margin: 0 auto; page-break-inside: avoid;">
 							<div class="rekapContainer">
 								<h2 align=center>REKAP NILAI HASIL PRAKUALIFIKASI DOKUMEN CSMS</h2>
@@ -864,7 +872,9 @@ class certificate extends CI_Controller{
 						</div>';*/
 		}
 
-		if($data['data_poin']['score']>0){
+		// Initialize skor_csms variable
+		$skor_csms = '';
+		if(isset($data['data_poin']['score']) && $data['data_poin']['score'] > 0){
 			$skor_csms		= '<tr>
 									<td width=150px>Skor CSMS</td>
 									<td>:&nbsp;&nbsp;&nbsp;'.$data['data_poin']['score'].'</td>
@@ -1228,8 +1238,11 @@ class certificate extends CI_Controller{
 		$data['ms_quest']		= $this->km->get_master_header();
 		$data['csms_limit']		= $this->km->get_csms_limit($data['vendor']['id']);
 		$data['data_poin']		= $this->km->get_poin($data['vendor']['id']);
-		$data['csms_file'] 		= $this->km->get_k3_all_data($data['vendor']['id'])['csms_file'];
-		$data['value_k3']		= $this->km->get_penilaian_value($data['vendor']['id'],$data['csms_file']['id']);
+		$k3_all_data = $this->km->get_k3_all_data($data['vendor']['id']);
+		$data['csms_file'] = isset($k3_all_data['csms_file']) ? $k3_all_data['csms_file'] : array();
+		
+		$csms_file_id = !empty($data['csms_file']) && isset($data['csms_file']['id']) ? $data['csms_file']['id'] : 0;
+		$data['value_k3'] = $this->km->get_penilaian_value($data['vendor']['id'], $csms_file_id);
 
 		// print_r($data);die;
 

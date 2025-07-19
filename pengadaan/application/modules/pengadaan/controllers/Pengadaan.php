@@ -735,7 +735,7 @@ class Pengadaan extends CI_Controller {
 		$_POST = $this->securities->clean_input($_POST,'save');
 		$admin = $this->session->userdata('admin');
 		
-		if($_POST['Simpan']){
+		if(isset($_POST['Simpan']) && $_POST['Simpan']){
 			unset($_POST['Simpan']);
 
 			$save = $this->input->post();

@@ -19,6 +19,10 @@ function default_date($date){
 
 }
 function special_date($date){
+	// Check if date is empty or invalid
+	if (empty($date) || $date == '0000-00-00' || $date == '00-00-0000') {
+		return '-';
+	}
 
 	$month = array(
 				'01'	=> 	'Januari',
@@ -33,12 +37,34 @@ function special_date($date){
 				'10'	=>	'Oktober',
 				'11'	=>	'November',
 				'12'	=> 	'Desember');
-  $_date = explode('-',$date);
-  return $_date[2].' '.$month[$_date[1]].' '.$_date[0];
+	
+	$_date = explode('-', $date);
+	
+	// Validate exploded date parts
+	if (count($_date) != 3) {
+		return '-';
+	}
+	
+	// Check if month is valid
+	if (!isset($month[$_date[1]]) || $_date[1] == '00') {
+		return '-';
+	}
+	
+	// Check if day is valid
+	if ($_date[2] == '00' || $_date[0] == '0000') {
+		return '-';
+	}
+	
+	return $_date[2].' '.$month[$_date[1]].' '.$_date[0];
 	// return date('d',strtotime($date)) .' '. $month[date('n',strtotime($date))] .' '.date('Y',strtotime($date));
 // 
 }
 function get_hari($date){
+  // Check if date is empty or invalid
+  if (empty($date) || $date == '0000-00-00' || $date == '00-00-0000' || strtotime($date) === false) {
+    return '-';
+  }
+
   $day = array(
         1 =>  'Senin',
         2 =>  'Selasa',
@@ -48,9 +74,15 @@ function get_hari($date){
         6 =>  'Sabtu',
         7 =>  'Minggu');
 
-  return $day[date('N',strtotime($date))];
+  $day_num = date('N', strtotime($date));
+  return isset($day[$day_num]) ? $day[$day_num] : '-';
 }
 function get_month($date){
+  // Check if date is empty or invalid
+  if (empty($date) || $date == '0000-00-00' || $date == '00-00-0000' || strtotime($date) === false) {
+    return '-';
+  }
+
   $month = array(
         1 =>  'Januari',
         2 =>  'Februari',
@@ -64,9 +96,19 @@ function get_month($date){
         10  =>  'Oktober',
         11  =>  'November',
         12  =>  'Desember');
-  return $month[date('n',strtotime($date))];
+  
+  $month_num = date('n', strtotime($date));
+  return isset($month[$month_num]) ? $month[$month_num] : '-';
 }
 function get_range_date($date1,$date2){
+	// Check if dates are empty or invalid
+	if (empty($date1) || empty($date2) || 
+		$date1 == '0000-00-00' || $date2 == '0000-00-00' ||
+		$date1 == '00-00-0000' || $date2 == '00-00-0000' ||
+		strtotime($date1) === false || strtotime($date2) === false) {
+		return 0;
+	}
+	
 	return ceil((strtotime($date1) - strtotime($date2))/86400)+1;
 }
 function terbilang($x)

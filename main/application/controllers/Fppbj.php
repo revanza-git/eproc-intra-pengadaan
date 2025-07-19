@@ -677,8 +677,22 @@ class Fppbj extends MY_Controller {
 	}
 
 	public function validation(){
-		$__validation = $this->formWizard['step'][$_POST['validation']]['form'];
-		if($_POST['validation']=='fppbj'){
+		// Check if validation parameter exists
+		if (!isset($_POST['validation'])) {
+			echo json_encode(array('status' => 'error', 'message' => 'Validation parameter missing'));
+			return;
+		}
+		
+		$validation_key = $_POST['validation'];
+		
+		// Check if the validation key exists in formWizard
+		if (!isset($this->formWizard['step'][$validation_key]['form'])) {
+			echo json_encode(array('status' => 'error', 'message' => 'Invalid validation key'));
+			return;
+		}
+		
+		$__validation = $this->formWizard['step'][$validation_key]['form'];
+		if($validation_key == 'fppbj'){
 			
 			$__val = array();
 			foreach ($this->input->post() as $key => $value) {

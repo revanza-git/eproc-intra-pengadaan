@@ -55,8 +55,14 @@ class Auction_tata_cara extends CI_Controller{
 		$param['anggaran'] = str_replace(",","",$param['anggaran']);
 		
 		$this->tata_cara_model->save($param);
-		$this->set_syarat($_POST['id_lelang']);
-		if($_POST['metode_penawaran'] == "lump_sum") $this->set_barang($_POST['id_lelang']);
+		
+		if(isset($_POST['id_lelang'])) {
+			$this->set_syarat($_POST['id_lelang']);
+			
+			if(isset($_POST['metode_penawaran']) && $_POST['metode_penawaran'] == "lump_sum") {
+				$this->set_barang($_POST['id_lelang']);
+			}
+		}
 		
 		$json = array(
 			'status' => 'success',

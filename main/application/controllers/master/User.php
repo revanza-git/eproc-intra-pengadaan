@@ -101,6 +101,13 @@ class User extends MY_Controller {
 		echo json_encode($this->form);
 	}
 	public function save($data = null){
+		// Check if required email field exists
+		if (!isset($_POST['email']) || empty($_POST['email'])) {
+			// Handle missing email error
+			show_error('Email field is required for user creation.');
+			return;
+		}
+		
 		$password = password_generator();
 		$_POST['username'] = $_POST['email'];
 		$_POST['raw_password'] = $password;
@@ -113,11 +120,14 @@ class User extends MY_Controller {
 	}
 
 	public function update($id){
-		if($_POST['password']!=''){
+		if(isset($_POST['password']) && $_POST['password'] != ''){
 			$_POST['raw_password'] = $_POST['password'];
 			$_POST['password'] = do_hash($_POST['password'],'sha1');
 		}else{
-			unset($_POST['password']);
+			// Remove password from POST data if not provided or empty
+			if(isset($_POST['password'])){
+				unset($_POST['password']);
+			}
 			$this->form['form']['password']['rules'] = '';
 		}
 		

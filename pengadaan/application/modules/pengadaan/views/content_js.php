@@ -38,7 +38,7 @@ $(function(){
 		        obj.autocomplete({
 		            source: function(request, response) {
 		                $.ajax({
-			                url: "<?php echo site_url('pengadaan/search_kandidat/'.$id_pengadaan)?>",
+			                url: "<?php echo site_url('pengadaan/search_kandidat/'.(isset($id) ? $id : ''))?>",
 			                data: { term: $("#vendor_name").val()},
 			                dataType: "json",
 			                type: "POST",

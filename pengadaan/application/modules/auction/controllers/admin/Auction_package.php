@@ -211,8 +211,12 @@ class Auction_package extends CI_Controller{
 	}
 	
 	function save(){
-		if($_POST['sumber_anggaran_apgn']) $_POST['sumber_anggaran'] = $_POST['sumber_anggaran_apgn'];
-		if($_POST['sumber_anggaran_non_apgn']) $_POST['sumber_anggaran'] = $_POST['sumber_anggaran_non_apgn'];
+		if(isset($_POST['sumber_anggaran_apgn']) && $_POST['sumber_anggaran_apgn']) {
+			$_POST['sumber_anggaran'] = $_POST['sumber_anggaran_apgn'];
+		}
+		if(isset($_POST['sumber_anggaran_non_apgn']) && $_POST['sumber_anggaran_non_apgn']) {
+			$_POST['sumber_anggaran'] = $_POST['sumber_anggaran_non_apgn'];
+		}
 		
 		$param = array(
 			'nama' => $_POST['nama'],

@@ -50,7 +50,7 @@ class Main extends CI_Controller {
 		$this->session->sess_destroy();
 		
 		// Step 3: Call VMS logout endpoint to clear remote session
-		if ($admin_data && isset($admin_data['originated_from_vms'])) {
+		if ($admin_data && isset($admin_data['originated_from_vms']) && $this->config->item('enable_vms_session_clearing')) {
 			$this->clear_vms_session($admin_data);
 		}
 		
@@ -60,7 +60,8 @@ class Main extends CI_Controller {
 	
 	private function clear_vms_session($admin_data) {
 		// Option A: Call VMS logout API
-		$vms_logout_url = 'http://local.eproc.vms.com/app/main/api_logout';
+		$vms_base_url = rtrim($this->config->item('vms_url'), '/');
+		$vms_logout_url = $vms_base_url . '/app/main/api_logout';
 		
 		$post_data = array(
 			'admin_id' => $admin_data['id_user'],
@@ -75,17 +76,27 @@ class Main extends CI_Controller {
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 		
 		$response = curl_exec($ch);
 		$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		$curl_error = curl_error($ch);
+		$curl_errno = curl_errno($ch);
 		curl_close($ch);
 		
-		// Log the result (optional)
-		if ($http_code == 200) {
+		// Enhanced logging with detailed error information
+		if ($response === false) {
+			log_message('error', 'Failed to clear VMS session for user: ' . $admin_data['id_user'] . ' - cURL Error (' . $curl_errno . '): ' . $curl_error);
+		} elseif ($http_code == 200) {
 			log_message('info', 'VMS session cleared successfully for user: ' . $admin_data['id_user']);
 		} else {
-			log_message('error', 'Failed to clear VMS session for user: ' . $admin_data['id_user']);
+			log_message('error', 'Failed to clear VMS session for user: ' . $admin_data['id_user'] . ' - HTTP Code: ' . $http_code . ' - Response: ' . substr($response, 0, 200));
 		}
+		
+		// Don't block the logout process even if VMS session clearing fails
+		return true;
 	}
 	
 	private function generate_logout_token($admin_data) {
