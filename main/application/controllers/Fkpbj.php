@@ -167,7 +167,30 @@ class Fkpbj extends MY_Controller {
 		$this->deleteUrl = 'fkpbj/delete/';
 		$this->approveURL = 'fkpbj/approve/';
 		$this->getData = $this->fkm->getData($this->form);
-		$this->form_validation->set_rules($this->form['form']);
+		
+		// Filter form elements to only include valid validation rules
+		$validation_rules = array();
+		foreach ($this->form['form'] as $element) {
+			if (is_array($element) && isset($element['field']) && isset($element['rules']) && !empty($element['field']) && !empty($element['rules'])) {
+				// Handle array fields (like date ranges)
+				if (is_array($element['field'])) {
+					foreach ($element['field'] as $field) {
+						if (!empty($field)) {
+							$validation_rules[] = array(
+								'field' => $field,
+								'label' => isset($element['label']) ? $element['label'] : $field,
+								'rules' => $element['rules']
+							);
+						}
+					}
+				} else {
+					$validation_rules[] = $element;
+				}
+			}
+		}
+		if (!empty($validation_rules)) {
+			$this->form_validation->set_rules($validation_rules);
+		}
 	}
 
 	public function getData($id_division = "", $id_fppbj = "", $year = "")

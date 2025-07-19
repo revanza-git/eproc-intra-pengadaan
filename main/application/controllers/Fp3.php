@@ -165,7 +165,17 @@ class Fp3 extends MY_Controller
 		$this->deleteUrl = 'fp3/delete/';
 		$this->approveURL = 'fp3/approve/';
 		$this->getData = $this->fp3->getData($this->form);
-		$this->form_validation->set_rules($this->form['form']);
+		
+		// Filter form elements to only include valid validation rules
+		$validation_rules = array();
+		foreach ($this->form['form'] as $element) {
+			if (isset($element['field']) && isset($element['rules'])) {
+				$validation_rules[] = $element;
+			}
+		}
+		if (!empty($validation_rules)) {
+			$this->form_validation->set_rules($validation_rules);
+		}
 	}
 
 	public function fp3ByYear($year)
@@ -176,6 +186,7 @@ class Fp3 extends MY_Controller
 		));
 
 		$data['year'] = $year;
+		$data['id'] = $year; // Pass year as id for the JavaScript view
 
 		$this->header = 'FP3 ' . $year;
 		$this->content = $this->load->view('fp3/list_year', $data, TRUE);
@@ -343,14 +354,8 @@ class Fp3 extends MY_Controller
         }
 
 		foreach ($this->form['form'] as $key => $element) {
-			if ($this->form['form'][$key]['type'] == 'date_range') {
-				$_value = array();
-
-				foreach ($this->form['form'][$key]['field'] as $keys => $values) {
-					$_value[] = $data[$values];
-				}
-				$this->form['form'][$key]['value'] = $_value;
-			}
+			// For insert operation, we don't populate from existing data
+			// Only set readonly properties for 'lama' (old) fields
 			if ($this->form['form'][$key]['field'] == array('jwpp_start_lama', 'jwpp_end_lama')) {
 				$this->form['form'][$key]['readonly'] = true;
 			}
@@ -397,12 +402,13 @@ class Fp3 extends MY_Controller
 	{
 		$post = $this->input->post();
 
-		$id_pic = $post['id_pic'];
+		$id_pic = isset($post['id_pic']) ? $post['id_pic'] : null;
 		$table = "ms_fp3";
 		$fp3 = $this->fp3->selectData($id);
 		$fppbj = $this->fm->selectData($fp3['id_fppbj']);
 
-		$param_ = array('is_status' => 1, 'is_approved' => $param_, 'pejabat_pengadaan_id' => $post['pejabat_pengadaan_id']);
+		$pejabat_pengadaan_id = isset($post['pejabat_pengadaan_id']) ? $post['pejabat_pengadaan_id'] : null;
+		$param_ = array('is_status' => 1, 'is_approved' => $param_, 'pejabat_pengadaan_id' => $pejabat_pengadaan_id);
 		$data 	= $this->mm->approve($table, $id, $param_);
 
 		$division = $this->get_email_division($this->session->userdata('admin')['id_division']);
@@ -419,8 +425,8 @@ class Fp3 extends MY_Controller
 
 		$fp3['id_pengadaan'] = $fp3['id_fppbj'];
 		$fp3['approved_by']  = $this->session->userdata('admin')['id_user'];
-		$tgl_approval = $post['tgl_approval'];
-		$fp3['pejabat_pengadaan_id'] = $post['pejabat_pengadaan_id'];
+		$tgl_approval = isset($post['tgl_approval']) ? $post['tgl_approval'] : date('Y-m-d');
+		$fp3['pejabat_pengadaan_id'] = isset($post['pejabat_pengadaan_id']) ? $post['pejabat_pengadaan_id'] : null;
 		$fp3['date']	= $tgl_approval . ' ' . date('H:i:s');
 
 		unset($fp3['id_fppbj']);
@@ -560,6 +566,9 @@ class Fp3 extends MY_Controller
 
 		$dataFP3 = $this->fp3->selectData($id);
 		// $param_  = ($admin['id_role'] == 4) ? ($param_=1) : (($admin['id_role'] == 3) ? ($param_=2) : (($admin['id_role'] == 2) ? ($param_=3) : ''));
+		// Initialize param_ with default value
+		$param_ = 0;
+		
 		if ($admin['id_role'] == 4) {
 			$param_ = 1;
 		} elseif ($admin['id_role'] == 3) {
@@ -648,14 +657,23 @@ class Fp3 extends MY_Controller
 			if ($key != 16 && $key != 18) {	
 				$this->form['form'][$key]['readonly'] = true;
 			}
-			$getData[$value['field']] = ($getData[$value['field']]) ? $getData[$value['field']] : "-";
+			
+			// Handle array fields properly
+			if (is_array($value['field'])) {
+				// Skip array fields for value assignment
+				continue;
+			}
+			
+			$getData[$value['field']] = isset($getData[$value['field']]) && $getData[$value['field']] ? $getData[$value['field']] : "-";
 			$this->form['form'][$key]['value'] = $getData[$value['field']];
 			$this->form['form'][16]['value'] = date('Y-m-d');
 
-			if ($value['type'] == 'date_range') {
+			if ($value['type'] == 'date_range' && is_array($value['field'])) {
+				$_value = array();
 				foreach ($value['field'] as $keyField => $rowField) {
-					$this->form['form'][$key]['value'][] = $getData[$rowField];
+					$_value[] = isset($getData[$rowField]) ? $getData[$rowField] : '';
 				}
+				$this->form['form'][$key]['value'] = $_value;
 			}
 			if ($value['type'] == 'dateperiod') {
 				$dateperiod = json_decode($getData[$value['field']]);
@@ -688,6 +706,7 @@ class Fp3 extends MY_Controller
 		$data['id_division']	= $id_division;
 		$data['id_fppbj']		= $id_fppbj;
 		$data['year']		 	= $year;
+		$data['id']				= $id_division; // Pass id_division as id for the JavaScript view
 
 		$this->header = 'FP3 ' . $division['name'];
 		$this->content = $this->load->view('fp3/list', $data, TRUE);

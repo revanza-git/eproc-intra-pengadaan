@@ -598,11 +598,32 @@ class Pemaketan extends MY_Controller
             }
             print_r($__validation);
 
-            $this->form_validation->set_rules($__val);
+            // Only set validation rules if $__val is not empty and properly formatted
+            if (!empty($__val)) {
+                $validation_rules = array();
+                foreach ($__val as $element) {
+                    if (isset($element['field']) && isset($element['rules'])) {
+                        $validation_rules[] = $element;
+                    }
+                }
+                if (!empty($validation_rules)) {
+                    $this->form_validation->set_rules($validation_rules);
+                }
+            }
             $this->validation($__val);
         } else {
-
-            $this->form_validation->set_rules($this->formWizard['step'][$_POST['validation']]['form']);
+            // Filter form elements to only include valid validation rules
+            $validation_rules = array();
+            if (isset($this->formWizard['step'][$_POST['validation']]['form'])) {
+                foreach ($this->formWizard['step'][$_POST['validation']]['form'] as $element) {
+                    if (isset($element['field']) && isset($element['rules'])) {
+                        $validation_rules[] = $element;
+                    }
+                }
+                if (!empty($validation_rules)) {
+                    $this->form_validation->set_rules($validation_rules);
+                }
+            }
             $this->validation($__validation);
         }
     }
@@ -663,7 +684,18 @@ class Pemaketan extends MY_Controller
         } else if ($_page == "fppbj") {
 
             $_validation = $this->formWizard['step'][$_page]['fppbj'];
-            $this->form_validation->set_rules($_validation);
+            // Filter form elements to only include valid validation rules
+            $validation_rules = array();
+            if (is_array($_validation)) {
+                foreach ($_validation as $element) {
+                    if (isset($element['field']) && isset($element['rules'])) {
+                        $validation_rules[] = $element;
+                    }
+                }
+                if (!empty($validation_rules)) {
+                    $this->form_validation->set_rules($validation_rules);
+                }
+            }
             /*$this->form_validation->set_message('jwpp_start', 'Ini Harus Diisi');
             $this->form_validation->set_message('jwpp_end', 'Ini Harus Diisi');*/
 			if ($data['jwpp_start']) {
@@ -2242,7 +2274,16 @@ class Pemaketan extends MY_Controller
                 'label' => 'Batal'
             )
         );
-        $this->form_validation->set_rules($this->form['form']);
+        // Filter form elements to only include valid validation rules
+        $validation_rules = array();
+        foreach ($this->form['form'] as $element) {
+            if (isset($element['field']) && isset($element['rules'])) {
+                $validation_rules[] = $element;
+            }
+        }
+        if (!empty($validation_rules)) {
+            $this->form_validation->set_rules($validation_rules);
+        }
         echo json_encode($this->form);
     }
 
@@ -2252,7 +2293,16 @@ class Pemaketan extends MY_Controller
         $fppbj = $this->fm->selectData($id);
         $admin = $this->session->userdata('admin');
 
-        $this->form_validation->set_rules($this->form_edit['form']);
+        // Filter form elements to only include valid validation rules
+        $validation_rules = array();
+        foreach ($this->form_edit['form'] as $element) {
+            if (isset($element['field']) && isset($element['rules'])) {
+                $validation_rules[] = $element;
+            }
+        }
+        if (!empty($validation_rules)) {
+            $this->form_validation->set_rules($validation_rules);
+        }
         //$this->form= $this->form_edit;
         if ($this->validation($this->form_edit)) {
 

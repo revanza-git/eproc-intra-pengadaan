@@ -83,12 +83,22 @@ class Pengadaan_model extends CI_Model {
 
 	public function getDataFP3()
 	{
+		$admin = $this->session->userdata('admin');
+
+		// Division access control
+		// Superadmin (role 10), division 1, and division 5 can see all divisions
+		if ($admin['id_division'] == 1 || $admin['id_division'] == 5 || $admin['id_role'] == 10) {
+			$division_filter = "";
+		} else {
+			$division_filter = " WHERE b.id_division = " . $admin['id_division'];
+		}
+
 		$query = "	SELECT  b.nama_pengadaan AS name,
 							count(*) AS total,
 							year_anggaran AS year,
 							b.id
 					FROM ms_fp3 a 
-					LEFT JOIN ".$this->fppbj." b ON b.id = a.id_fppbj";
+					LEFT JOIN ".$this->fppbj." b ON b.id = a.id_fppbj" . $division_filter;
 
 		$query .= " GROUP BY YEAR(b.entry_stamp)";
 
@@ -103,7 +113,15 @@ class Pengadaan_model extends CI_Model {
 	function getDataFP3ByYear($year){
 		$admin = $this->session->userdata('admin');
 
-		$get = "WHERE ms_fppbj.entry_stamp LIKE '%".$year."%' ";
+		// Division access control
+		// Superadmin (role 10), division 1, and division 5 can see all divisions
+		if ($admin['id_division'] == 1 || $admin['id_division'] == 5 || $admin['id_role'] == 10) {
+			$division_filter = "";
+		} else {
+			$division_filter = " AND ms_fppbj.id_division = " . $admin['id_division'];
+		}
+
+		$get = "WHERE ms_fppbj.entry_stamp LIKE '%".$year."%' " . $division_filter . " ";
 
 		$query = "	SELECT  name,
 							count(*) AS total,

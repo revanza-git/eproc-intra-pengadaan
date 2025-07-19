@@ -13,7 +13,10 @@ class Export_model extends MY_Model{
     
     
     function fppbj($id=''){
-        $query = "SELECT * FROM ms_fppbj WHERE id = ".$id;
+        if(empty($id) || !is_numeric($id)){
+            return array();
+        }
+        $query = "SELECT * FROM ms_fppbj WHERE id = ".(int)$id;
         return $this->db->query($query)->row_array();
     }
 

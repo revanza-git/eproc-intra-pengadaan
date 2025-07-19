@@ -1055,7 +1055,8 @@ class Export extends MY_Controller {
 		$kepada 	 = $this->input->post()['to'];
 		$pusat_biaya = $this->input->post()['pb'];
 		$tanggal 	 = $this->input->post()['date'];
-		$pengguna 	 = $this->input->post()['pbj'];
+		$post_data = $this->input->post();
+		$pengguna = isset($post_data['pbj']) ? $post_data['pbj'] : '';
 		$kadep_	 	 = $this->input->post()['kadep_'];
 		$kadiv_	 	 = $this->input->post()['kadiv_'];
 		$kadep	 	 = $this->input->post()['kadep'];

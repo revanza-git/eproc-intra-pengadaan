@@ -160,7 +160,13 @@
 				}
 			}else{
 				if(this.options.onNext()){
-					this.options.currentPosition = _toPage; //<< JUMP TO DESIRE PAGE /GET NUMBER FROM STEP ID\
+					// Convert _toPage to number and validate
+					var pageNumber = parseInt(_toPage);
+					if (!isNaN(pageNumber) && pageNumber > 0) {
+						this.options.currentPosition = pageNumber; //<< JUMP TO DESIRE PAGE /GET NUMBER FROM STEP ID\
+					} else {
+						this.options.currentPosition++;
+					}
 					this.reset();
 				}
 				console.log(_toPage);
@@ -208,12 +214,14 @@
 			
 			// console.log('>>>>>> btn prev id', _toPage);
 			if(this.options.onPrev()){
-				if (typeof parseInt(_toPage) === 'undefined') {
-					// console.log('>>>>>> btn prev id undefined');
+				// Check if _toPage is a valid number
+				var pageNumber = parseInt(_toPage);
+				if (isNaN(pageNumber) || _toPage === undefined || _toPage === null || _toPage === '') {
+					// console.log('>>>>>> btn prev id undefined or invalid');
 					this.options.currentPosition--;
 				} else {
 					// console.log('>>>>>> btn prev id defined');
-					this.options.currentPosition = _toPage;
+					this.options.currentPosition = pageNumber;
 				}
 				
 				this.reset();

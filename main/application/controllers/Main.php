@@ -32,21 +32,103 @@ class Main extends CI_Controller {
 	}
 
 	public function logout(){
-		$admin = $this->session->userdata('admin');
+		// Step 1: Get current admin session data before destroying
+		$admin_data = $this->session->userdata('admin');
 		
 		// Only log activity if admin is logged in
-		if($admin && isset($admin['id_user']) && isset($admin['name'])){
+		if($admin_data && isset($admin_data['id_user']) && isset($admin_data['name'])){
 			$activity = array(
-				'id_user'		=>	$admin['id_user'],
-				'activity'		=>	$admin['name']." Telah Logout",
+				'id_user'		=>	$admin_data['id_user'],
+				'activity'		=>	$admin_data['name']." Telah Logout",
 				'activity_date' => date('Y-m-d H:i:s')
 			);
 
 			$this->db->insert('tr_log_activity',$activity);
 		}
 		
+		// Step 2: Destroy local session first
 		$this->session->sess_destroy();
-		header("Location:".$this->config->item("vms_url"));
+		
+		// Step 3: Call VMS logout endpoint to clear remote session
+		if ($admin_data && isset($admin_data['originated_from_vms'])) {
+			$this->clear_vms_session($admin_data);
+		}
+		
+		// Step 4: Redirect to safe logout page with logout flag
+		redirect('http://local.eproc.vms.com/app/main/logout?from_main=1&logout_complete=1');
+	}
+	
+	private function clear_vms_session($admin_data) {
+		// Option A: Call VMS logout API
+		$vms_logout_url = 'http://local.eproc.vms.com/app/main/api_logout';
+		
+		$post_data = array(
+			'admin_id' => $admin_data['id_user'],
+			'logout_token' => $this->generate_logout_token($admin_data),
+			'source' => 'main_project'
+		);
+		
+		// Use cURL to call VMS logout
+		$ch = curl_init($vms_logout_url);
+		curl_setopt($ch, CURLOPT_POST, 1);
+		curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post_data));
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+		
+		$response = curl_exec($ch);
+		$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		curl_close($ch);
+		
+		// Log the result (optional)
+		if ($http_code == 200) {
+			log_message('info', 'VMS session cleared successfully for user: ' . $admin_data['id_user']);
+		} else {
+			log_message('error', 'Failed to clear VMS session for user: ' . $admin_data['id_user']);
+		}
+	}
+	
+	private function generate_logout_token($admin_data) {
+		// Generate a secure token for logout verification
+		return hash('sha256', $admin_data['id_user'] . date('Y-m-d H:i') . 'logout_salt');
+	}
+	
+	// Handle logout requests from VMS
+	public function api_logout() {
+		if ($this->input->post()) {
+			$admin_id = $this->input->post('admin_id');
+			$logout_token = $this->input->post('logout_token');
+			$source = $this->input->post('source');
+			
+			// Verify the logout token (basic security)
+			if ($admin_id && $logout_token && $source === 'vms_app') {
+				// Destroy session for the specific admin if active
+				$current_admin = $this->session->userdata('admin');
+				if ($current_admin && $current_admin['id_user'] == $admin_id) {
+					$this->session->sess_destroy();
+				}
+				
+				// Return success response
+				echo json_encode(array('status' => 'success', 'message' => 'Session cleared'));
+			} else {
+				echo json_encode(array('status' => 'error', 'message' => 'Invalid request'));
+			}
+		} else {
+			echo json_encode(array('status' => 'error', 'message' => 'POST request required'));
+		}
+	}
+	
+	// Handle cross-app logout completion
+	public function logout_complete() {
+		$from_vms = $this->input->get('from_vms');
+		$logout_complete = $this->input->get('logout_complete');
+		
+		if ($from_vms && $logout_complete) {
+			// Show logout success page without session checks
+			$this->load->view('template/logout_complete');
+		} else {
+			header("Location:".$this->config->item("vms_url"));
+		}
 	}
 
 	public function check()
@@ -103,29 +185,50 @@ class Main extends CI_Controller {
 
 		if (!$key) {
 			header("Location:".$this->config->item("vms_url"));
+			exit();
 		}
 
 		$data = $this->eproc_db->where('key', $key)->where('deleted_at', NULL)->get('ms_key_value')->row_array();
 
-		if (!$data) {
+		if (!$data || empty($data['value'])) {
 			header("Location:".$this->config->item("vms_url"));
+			exit();
 		}
 
 		$value = json_decode($data['value']);
 
-		$division = $this->db->where('id',$value->id_division)->get('tb_division')->row_array(); 
-		$role = $this->db->where('id',$value->id_role)->get('tb_role')->row_array();
+		// Check if json_decode was successful
+		if (!$value || !is_object($value)) {
+			header("Location:".$this->config->item("vms_url"));
+			exit();
+		}
+
+		// Validate required properties
+		if (!isset($value->id_division) || !isset($value->id_role) || !isset($value->name) || !isset($value->id_user)) {
+			header("Location:".$this->config->item("vms_url"));
+			exit();
+		}
+
+		$division = $this->db->where('id', $value->id_division)->get('tb_division')->row_array(); 
+		$role = $this->db->where('id', $value->id_role)->get('tb_role')->row_array();
+
+		// Check if division and role exist
+		if (!$division || !$role) {
+			header("Location:".$this->config->item("vms_url"));
+			exit();
+		}
 
 		$set_session = array(
-			'name'			=>	$value->name,
+			'name'			=>	isset($value->name) ? $value->name : '',
 			'division'		=>	$division['name'],
-			'id_user' 		=> 	$value->id_user,
-			'id_role'		=>	$value->id_role,
-			'id_division'	=>  $value->id_division,
-			'email'			=>  $value->email,
-			'photo_profile' =>  $value->photo_profile,
-			'app_type' 		=>	$value->app_type,
-			'role_name'		=>	$role['name']
+			'id_user' 		=> 	isset($value->id_user) ? $value->id_user : 0,
+			'id_role'		=>	isset($value->id_role) ? $value->id_role : 0,
+			'id_division'	=>  isset($value->id_division) ? $value->id_division : 0,
+			'email'			=>  isset($value->email) ? $value->email : '',
+			'photo_profile' =>  isset($value->photo_profile) ? $value->photo_profile : '',
+			'app_type' 		=>	isset($value->app_type) ? $value->app_type : 2,
+			'role_name'		=>	$role['name'],
+			'originated_from_vms' => true  // Mark this session as coming from VMS
 		);
 
 		$this->session->set_userdata('admin',$set_session);
@@ -153,8 +256,14 @@ class Main extends CI_Controller {
 	}
 	
 	function get_dpt_csms($csms){
+		// Validate input parameter
+		if (empty($csms) || !is_numeric($csms)) {
+			echo json_encode(array());
+			return json_encode(array());
+		}
+		
 		$data = $this->eproc_db->select('ms_vendor.name vendor, ms_vendor.id id_vendor, tb_csms_limit.end_score score, tb_csms_limit.value csms')
-						->where('ms_csms.id_csms_limit', $csms)
+						->where('ms_csms.id_csms_limit', (int)$csms)
 						->where('ms_vendor.vendor_status', 2)
 						->join('ms_csms', 'ms_vendor.id = ms_csms.id_vendor')
 						->join('tb_csms_limit', 'tb_csms_limit.id = ms_csms.id_csms_limit')
@@ -187,8 +296,14 @@ class Main extends CI_Controller {
 		return json_encode($data->result_array());*/
 	}
 
-	public function get_dpt_type($jenis,$id_pengadaan)
+	public function get_dpt_type($jenis, $id_pengadaan = null)
 	{
+		// Validate jenis parameter
+		if (empty($jenis) || !is_string($jenis)) {
+			echo json_encode(array());
+			return json_encode(array());
+		}
+		
 		// echo "string ".$jenis;
 		if ($jenis == 'jasa_konstruksi') {
 			$q = 'AND c.id = 4';
@@ -202,16 +317,25 @@ class Main extends CI_Controller {
 			$q = '';
 		}
 
-		$dpt_before = $this->db->where('id_fppbj',$id_pengadaan)->get('tr_analisa_risiko')->row_array();
-		$dpt_before = json_decode($dpt_before['dpt_list']);
-
 		$dpt = [];
-		foreach ($dpt_before as $key => $value) {
-			// print_r($value);die;
-			foreach ($value as $k => $v) {
-				$dpt[$v] = 1;
+		
+		// Only get existing DPT data if id_pengadaan is provided
+		if ($id_pengadaan && is_numeric($id_pengadaan)) {
+			$dpt_before = $this->db->where('id_fppbj', $id_pengadaan)->get('tr_analisa_risiko')->row_array();
+			
+			if ($dpt_before && isset($dpt_before['dpt_list']) && !empty($dpt_before['dpt_list'])) {
+				$dpt_list = json_decode($dpt_before['dpt_list'], true);
+				
+				if (is_array($dpt_list)) {
+					foreach ($dpt_list as $key => $value) {
+						if (is_array($value)) {
+							foreach ($value as $k => $v) {
+								$dpt[$v] = 1;
+							}
+						}
+					}
+				}
 			}
-			// $dpt[][$value] = 1;
 		}
 
 		// print_r($dpt);die;
@@ -299,7 +423,8 @@ class Main extends CI_Controller {
 		$total_fppbj_dirsdm = $this->mm->get_total_fppbj_dirsdm($year);
 		$total_pending_dir  = $this->mm->total_pending_dir($year);
 
-		$width_fppbj_selesai = ($fppbj_selesai->num_rows() / count($total_fppbj_semua->result())) * 100;
+		$total_fppbj_count = count($total_fppbj_semua->result());
+		$width_fppbj_selesai = ($total_fppbj_count > 0) ? ($fppbj_selesai->num_rows() / $total_fppbj_count) * 100 : 0;
 
 		$all_fppbj_finish_rows = $all_fppbj_finish->num_rows();
 		

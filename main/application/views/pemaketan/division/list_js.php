@@ -2060,6 +2060,10 @@ $(function(){
 
 					return _return;
 				},
+				onPrev: function(){
+					// Allow previous navigation
+					return true;
+				},
 				onSubmit: function(){
 					// alert('on submit');
 					// location.reload();

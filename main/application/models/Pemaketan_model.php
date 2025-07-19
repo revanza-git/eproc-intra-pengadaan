@@ -538,7 +538,10 @@ class Pemaketan_model extends MY_Model{
 
 	public function get_data_analisa($id)
 	{
-		$sql1 = "SELECT a.* FROM ms_fppbj a WHERE a.id = ".$id;
+		if(empty($id) || !is_numeric($id)){
+			return array();
+		}
+		$sql1 = "SELECT a.* FROM ms_fppbj a WHERE a.id = ".(int)$id;
 		$query1 = $this->db->query($sql1)->row_array();
 		$sql = "SELECT 
 						a.* 

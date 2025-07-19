@@ -1242,15 +1242,18 @@ class Export extends MY_Controller {
 	function fp3($id){
 		$data = $this->ex->get_exportFP3($id);
 		$get_fppbj = $this->ex->fppbj($id);
-		$nomor  	 = $this->input->post()['no'];
-		$kepada 	 = $this->input->post()['to'];
-		$pusat_biaya = $this->input->post()['pb'];
-		$tanggal 	 = $this->input->post()['date'];
-		$pengguna 	 = $this->input->post()['pbj'];
-		$kadep_	 	 = $this->input->post()['kadep_'];
-		$kadiv_	 	 = $this->input->post()['kadiv_'];
-		$kadep	 	 = $this->input->post()['kadep'];
-		$kadiv	 	 = $this->input->post()['kadiv'];
+		$post_data = $this->input->post();
+		$nomor  	 = isset($post_data['no']) ? $post_data['no'] : '';
+		$kepada 	 = isset($post_data['to']) ? $post_data['to'] : '';
+		$pusat_biaya = isset($post_data['pb']) ? $post_data['pb'] : '';
+		$tanggal 	 = isset($post_data['date']) ? $post_data['date'] : '';
+		$pengguna 	 = isset($post_data['pbj']) ? $post_data['pbj'] : '';
+		$kadep_	 	 = isset($post_data['kadep_']) ? $post_data['kadep_'] : '';
+		$kadiv_	 	 = isset($post_data['kadiv_']) ? $post_data['kadiv_'] : '';
+		$kadep	 	 = isset($post_data['kadep']) ? $post_data['kadep'] : '';
+		$kadiv	 	 = isset($post_data['kadiv']) ? $post_data['kadiv'] : '';
+		// Initialize table variable
+		$table = '';
 		// print_r($data);die;
 		foreach ($data as $key => $value) {
 			$key = $key +1;

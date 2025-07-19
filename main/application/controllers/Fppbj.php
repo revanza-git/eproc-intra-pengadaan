@@ -199,7 +199,30 @@ class Fppbj extends MY_Controller {
 		$this->updateUrl = 'fppbj/update';
 		$this->deleteUrl = 'fppbj/delete/';
 		$this->getData = $this->fm->getData($this->form);
-		$this->form_validation->set_rules($this->form['form']);
+		
+		// Filter form elements to only include valid validation rules
+		$validation_rules = array();
+		foreach ($this->form['form'] as $element) {
+			if (is_array($element) && isset($element['field']) && isset($element['rules']) && !empty($element['field']) && !empty($element['rules'])) {
+				// Handle array fields (like date ranges)
+				if (is_array($element['field'])) {
+					foreach ($element['field'] as $field) {
+						if (!empty($field)) {
+							$validation_rules[] = array(
+								'field' => $field,
+								'label' => isset($element['label']) ? $element['label'] : $field,
+								'rules' => $element['rules']
+							);
+						}
+					}
+				} else {
+					$validation_rules[] = $element;
+				}
+			}
+		}
+		if (!empty($validation_rules)) {
+			$this->form_validation->set_rules($validation_rules);
+		}
 	}
 
 	function save(){
@@ -659,14 +682,38 @@ class Fppbj extends MY_Controller {
 			
 			$__val = array();
 			foreach ($this->input->post() as $key => $value) {
-				$__val[$key] = $__validation[$value];
+				if (isset($__validation[$value])) {
+					$__val[$key] = $__validation[$value];
+				}
 			}
 			// print_r($__val);
-			$this->form_validation->set_rules($__val);
+			
+			// Only set validation rules if $__val is not empty and properly formatted
+			if (!empty($__val)) {
+				$validation_rules = array();
+				foreach ($__val as $element) {
+					if (isset($element['field']) && isset($element['rules'])) {
+						$validation_rules[] = $element;
+					}
+				}
+				if (!empty($validation_rules)) {
+					$this->form_validation->set_rules($validation_rules);
+				}
+			}
 			$this->validation($__val);
 		}else{
-
-			$this->form_validation->set_rules($this->formWizard['step'][$_POST['validation']]['form']);
+			// Filter form elements to only include valid validation rules
+			$validation_rules = array();
+			if (isset($this->formWizard['step'][$_POST['validation']]['form'])) {
+				foreach ($this->formWizard['step'][$_POST['validation']]['form'] as $element) {
+					if (isset($element['field']) && isset($element['rules'])) {
+						$validation_rules[] = $element;
+					}
+				}
+				if (!empty($validation_rules)) {
+					$this->form_validation->set_rules($validation_rules);
+				}
+			}
 			$this->validation($__validation);
 		}	
 	}

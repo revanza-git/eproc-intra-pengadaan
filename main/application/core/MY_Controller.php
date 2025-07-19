@@ -244,28 +244,80 @@ class MY_Controller extends CI_Controller{
 	public function validation($form = null){
 
 		ob_start();
-		// print_r($form);die;
 		$_r = false;
+		
+		// Determine which form structure to use
 		if ($form == null) {
-			$form = $this->form['form'];
-			$this->form_validation->set_rules($this->form['form']);
+			$form = (isset($this->form) && isset($this->form['form'])) ? $this->form['form'] : array();
+		}
+		
+		// Ensure we have a valid form array
+		if (!is_array($form)) {
+			$form = array();
+		}
+		
+		// Filter form elements to only include valid validation rules
+		$validation_rules = array();
+		foreach ($form as $element) {
+			if (is_array($element) && isset($element['field']) && isset($element['rules']) && !empty($element['field']) && !empty($element['rules'])) {
+				// Handle array fields (like date ranges)
+				if (is_array($element['field'])) {
+					foreach ($element['field'] as $field) {
+						if (!empty($field)) {
+							$validation_rules[] = array(
+								'field' => $field,
+								'label' => isset($element['label']) ? $element['label'] : $field,
+								'rules' => $element['rules']
+							);
+						}
+					}
+				} else {
+					$validation_rules[] = $element;
+				}
+			}
+		}
+		
+		// Reset form validation to prevent conflicts
+		$this->form_validation->reset_validation();
+		
+		// Set validation rules only if we have valid rules
+		if (!empty($validation_rules)) {
+			$this->form_validation->set_rules($validation_rules);
 		}
 
 		if ($this->form_validation->run() == FALSE) {
 			
 			$return['status'] = 'error';
-			foreach($form as $value) {
-				if ($value['type'] == 'file') {
-					$return['file'][$value['field']] = $this->session->userdata($value['field']);
-				}
+			$return['form'] = array();
+			$return['file'] = array();
+			
+			if (is_array($form)) {
+				foreach($form as $value) {
+					if (!is_array($value) || !isset($value['field'])) {
+						continue; // Skip if not an array or no field is set
+					}
+				
+					if (isset($value['type']) && $value['type'] == 'file') {
+						$return['file'][$value['field']] = $this->session->userdata($value['field']);
+					}
 
-				if ($value['type'] == 'date_range' && $value['rules'] == 'required') {
-					
-					$return['form'][$value['field'][0]] = $value['label'].' harus diisi';
-					$return['form'][$value['field'][1]] = $value['label'].' harus diisi';
-				}
-				else {
-					$return['form'][$value['field']] = form_error($value['field']);
+					if (isset($value['type']) && $value['type'] == 'date_range' && isset($value['rules']) && $value['rules'] == 'required' && isset($value['label'])) {
+						if (is_array($value['field'])) {
+							$return['form'][$value['field'][0]] = $value['label'].' harus diisi';
+							$return['form'][$value['field'][1]] = $value['label'].' harus diisi';
+						}
+					}
+					else {
+						// Get the actual form error for this field
+						$error = form_error($value['field']);
+						if (!empty($error)) {
+							$return['form'][$value['field']] = $error;
+						} else if (isset($value['rules']) && $value['rules'] == 'required') {
+							// If field is required but has no error message, create one
+							$label = isset($value['label']) ? $value['label'] : $value['field'];
+							$return['form'][$value['field']] = $label . ' harus diisi';
+						}
+					}
 				}
 			}
 
@@ -383,25 +435,30 @@ class MY_Controller extends CI_Controller{
 		// print_r($getData);
         foreach($this->form['form'] as $key => $value){
 			$this->form['form'][$key]['readonly'] = TRUE;
-			$getData[$value['field']] = ($getData[$value['field']]) ? $getData[$value['field']] : "-" ;
-            $this->form['form'][$key]['value'] = $getData[$value['field']];
+			
+			if (isset($value['field'])) {
+				$getData[$value['field']] = ($getData[$value['field']]) ? $getData[$value['field']] : "-" ;
+				$this->form['form'][$key]['value'] = $getData[$value['field']];
+			}
            
-            if($value['type']=='date_range'){
+            if(isset($value['type']) && $value['type']=='date_range' && isset($value['field'])){
                 foreach($value['field'] as $keyField =>$rowField){
                     $this->form['form'][$key]['value'][] = $getData[$rowField];
                 }
             }
-            if($value['type']=='dateperiod'){
+            if(isset($value['type']) && $value['type']=='dateperiod' && isset($value['field'])){
 				$dateperiod = json_decode($getData[$value['field']]);
-				$this->form['form'][$key]['value'] = date('d M Y', strtotime($dateperiod->start))." sampai ".date('d M Y', strtotime($dateperiod->end));
+				if ($dateperiod && isset($dateperiod->start) && isset($dateperiod->end)) {
+					$this->form['form'][$key]['value'] = date('d M Y', strtotime($dateperiod->start))." sampai ".date('d M Y', strtotime($dateperiod->end));
+				}
             }
-            if($value['type']=='money'){
+            if(isset($value['type']) && $value['type']=='money' && isset($value['field'])){
                     $this->form['form'][$key]['value'] = number_format($getData[$value['field']]);
             }
-            if($value['type']=='currency'){
+            if(isset($value['type']) && $value['type']=='currency' && isset($value['field'])){
                     $this->form['form'][$key]['value'] = number_format($getData[$value['field']],2);
             }
-            if($value['type']=='money_asing'){
+            if(isset($value['type']) && $value['type']=='money_asing' && isset($value['field'])){
                 $this->form['form'][$key]['value'][] = $getData[$value['field'][0]];
                 $this->form['form'][$key]['value'][] = number_format($getData[$value['field'][1]]);
             }
@@ -523,15 +580,15 @@ class MY_Controller extends CI_Controller{
 		
 		foreach($this->form['form'] as $key => $value) {
 
-			if ($value['type'] == 'file') {
-				if ($lastData != null && ($save[$value['field']] != $lastData[$value['field']])) {
+			if (isset($value['type']) && $value['type'] == 'file' && isset($value['field'])) {
+				if ($lastData != null && isset($save[$value['field']]) && isset($lastData[$value['field']]) && ($save[$value['field']] != $lastData[$value['field']])) {
 
 					if ($lastData[$value['field']] != '') {
 						unlink('./assets/lampiran/' . $value['field'] . '/' . $lastData[$value['field']]);
 					}
 				}
 
-				if ($save[$value['field']] != '') {
+				if (isset($save[$value['field']]) && $save[$value['field']] != '') {
 					if (file_exists('./assets/lampiran/temp/' . $save[$value['field']])) {
 						rename('./assets/lampiran/temp/' . $save[$value['field']], './assets/lampiran/' . $value['field'] . '/' . $save[$value['field']]);
 					}

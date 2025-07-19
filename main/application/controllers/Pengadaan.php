@@ -38,6 +38,7 @@ class Pengadaan extends MY_Controller {
 		));
 		
 		$data['admin'] = $this->session->userdata('admin');
+		$data['id'] = date('Y'); // Use current year as default ID for FP3 operations
 
 		$this->header = 'FP3';
 		$this->content = $this->load->view('pengadaan/list_fp3',$data, TRUE);

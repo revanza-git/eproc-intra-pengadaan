@@ -432,8 +432,9 @@ class Main_model extends CI_model{
 	}
 
 	public function get_total_fppbj_semua($year,$is_perencanaan="1"){
-		$id_role = $this->session->userdata('admin')['id_role'];
-		$id_division = $this->session->userdata('admin')['id_division'];
+		$admin = $this->session->userdata('admin');
+		$id_role = isset($admin['id_role']) ? $admin['id_role'] : 0;
+		$id_division = isset($admin['id_division']) ? $admin['id_division'] : 0;
 
 		if($year != ''){
 			$q = ' AND entry_stamp LIKE "%'.$year.'%" ';
@@ -455,7 +456,7 @@ class Main_model extends CI_model{
 				  		del = 0".$q.$perencanaan;
 
 		// Superadmin (role 10), division 1, and division 5 can see all divisions
-		if ($id_division != 1 && $id_division != 5 && $admin['id_role'] != 10) {
+		if ($id_division != 1 && $id_division != 5 && $id_role != 10) {
 			$sql .= " AND id_division = ".$id_division;
 		}
 		

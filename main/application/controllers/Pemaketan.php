@@ -193,7 +193,8 @@ class Pemaketan extends MY_Controller
                         array(
                             'type' => 'prev',
                             'label' => 'Sebelumnya',
-                            'class' => 'btn-prev'
+                            'class' => 'btn-prev',
+                            'id' => '1'
                         ), array(
                             'type' => 'next',
                             'label' => 'Lanjut',
@@ -219,7 +220,8 @@ class Pemaketan extends MY_Controller
                         array(
                             'type' => 'prev',
                             'label' => 'Sebelumnya',
-                            'class' => 'btn-prev'
+                            'class' => 'btn-prev',
+                            'id' => '2'
                         ), array(
                             'type' => 'next',
                             'label' => 'Lanjut',
@@ -249,7 +251,8 @@ class Pemaketan extends MY_Controller
                         array(
                             'type' => 'prev',
                             'label' => 'Sebelumnya',
-                            'class' => 'btn-prev'
+                            'class' => 'btn-prev',
+                            'id' => '3'
                         ), array(
                             'type' => 'next',
                             'label' => 'Lanjut',
@@ -278,9 +281,9 @@ class Pemaketan extends MY_Controller
                             'label'        => 'Biaya',
                             'source'    => array(
                                 0 => 'Pilih Dibawah Ini',
-                                1 => 'Biaya Pelaksanaan Pekerjaan ≤ 50 juta',
-                                2 => 'Biaya Pelaksanaan Pekerjaan > 50 juta s.d < 100 juta',
-                                3 => 'Biaya Pelaksanaan Pekerjaan ≥ 100 juta',
+                                1 => 'Biaya Pelaksanaan Pekerjaan&nbsp;≤ 50 juta',
+                                2 => 'Biaya Pelaksanaan Pekerjaan&nbsp;&gt; 50 juta s.d &lt; 100 juta',
+                                3 => 'Biaya Pelaksanaan Pekerjaan&nbsp;≥ 100 juta',
                             ),
                             'rules'     => 'required'
                         ),
@@ -329,7 +332,8 @@ class Pemaketan extends MY_Controller
                         array(
                             'type' => 'prev',
                             'label' => 'Sebelumnya',
-                            'class' => 'btn-prev'
+                            'class' => 'btn-prev',
+                            'id' => '4'
                         ), array(
                             'type' => 'next',
                             'label' => 'Lanjut',
@@ -562,81 +566,237 @@ class Pemaketan extends MY_Controller
 
     public function simpan()
     {
+        // Check if validation step is set
+        if (!isset($_POST['validation']) || !isset($this->formWizard['step'][$_POST['validation']]['form'])) {
+            echo json_encode(array('status' => 'error', 'message' => 'Invalid validation step'));
+            return;
+        }
+
         $__validation = $this->formWizard['step'][$_POST['validation']]['form'];
+        
         if ($_POST['validation'] == 'data') {
             $submitted = array();
 
             $__val = array();
             foreach ($submitted as $key => $value) {
-                $__val[$key] = $__validation[$value];
+                if (isset($__validation[$value])) {
+                    $__val[$key] = $__validation[$value];
+                }
             }
-            print_r($__validation);
 
-            $this->form_validation->set_rules($__val);
-            $this->validation($__val);
+            // Only proceed with validation if we have valid data structure
+            if (!empty($__val) && is_array($__val)) {
+                $validation_rules = array();
+                foreach ($__val as $element) {
+                    if (is_array($element) && isset($element['field']) && isset($element['rules'])) {
+                        $validation_rules[] = $element;
+                    }
+                }
+                if (!empty($validation_rules)) {
+                    $this->form_validation->set_rules($validation_rules);
+                }
+                
+                // Run validation
+                if ($this->form_validation->run() == FALSE) {
+                    $return['status'] = 'error';
+                    $return['form'] = array();
+                    
+                    foreach ($__val as $element) {
+                        if (is_array($element) && isset($element['field'])) {
+                            // Handle array fields (like date ranges)
+                            if (is_array($element['field'])) {
+                                foreach ($element['field'] as $field) {
+                                    if (!empty($field)) {
+                                        $error = form_error($field);
+                                        if (!empty($error)) {
+                                            $return['form'][$field] = strip_tags($error);
+                                        } else if (isset($element['rules']) && strpos($element['rules'], 'required') !== false) {
+                                            $label = isset($element['label']) ? $element['label'] : $field;
+                                            $return['form'][$field] = $label . ' harus diisi';
+                                        }
+                                    }
+                                }
+                            } else {
+                                $error = form_error($element['field']);
+                                if (!empty($error)) {
+                                    $return['form'][$element['field']] = strip_tags($error);
+                                } else if (isset($element['rules']) && strpos($element['rules'], 'required') !== false) {
+                                    $label = isset($element['label']) ? $element['label'] : $element['field'];
+                                    $return['form'][$element['field']] = $label . ' harus diisi';
+                                }
+                            }
+                        }
+                    }
+                    
+                    echo json_encode($return);
+                    return;
+                }
+            }
+            
+            echo json_encode(array('status' => 'success'));
         } else {
-
-            $this->form_validation->set_rules($this->formWizard['step'][$_POST['validation']]['form']);
-            $this->validation($__validation);
+            // Filter form elements to only include valid validation rules
+            $validation_rules = array();
+            if (is_array($__validation)) {
+                foreach ($__validation as $element) {
+                    if (is_array($element) && isset($element['field']) && isset($element['rules'])) {
+                        $validation_rules[] = $element;
+                    }
+                }
+            }
+            
+            if (!empty($validation_rules)) {
+                $this->form_validation->reset_validation();
+                $this->form_validation->set_rules($validation_rules);
+                
+                // Run validation
+                if ($this->form_validation->run() == FALSE) {
+                    $return['status'] = 'error';
+                    $return['form'] = array();
+                    
+                    foreach ($validation_rules as $element) {
+                        if (isset($element['field'])) {
+                            $error = form_error($element['field']);
+                            if (!empty($error)) {
+                                $return['form'][$element['field']] = $error;
+                            }
+                        }
+                    }
+                    
+                    echo json_encode($return);
+                    return;
+                }
+            }
+            
+            echo json_encode(array('status' => 'success'));
         }
     }
 
     function insertFPPBJ()
     {
+        // Check if request is POST
+        if (!$this->input->post()) {
+            echo json_encode(array('status' => 'error', 'message' => 'No data received'));
+            return;
+        }
+
         $data = $this->input->post();
+        
+        // Check if validation page is set
+        if (!isset($_POST['validation'])) {
+            echo json_encode(array('status' => 'error', 'message' => 'Validation page not specified'));
+            return;
+        }
+        
 		$_page = $_POST['validation'];
 
-		$analisa_resiko['apa'] 				= $data['apa'];
+		$analisa_resiko['apa'] 				= isset($data['apa']) ? $data['apa'] : '';
 		unset($data['apa']);
-		$analisa_resiko['manusia'] 		= $data['manusia'];
+		$analisa_resiko['manusia'] 		= isset($data['manusia']) ? $data['manusia'] : '';
 		unset($data['manusia']);
-		$analisa_resiko['asset'] 		= $data['asset'];
+		$analisa_resiko['asset'] 		= isset($data['asset']) ? $data['asset'] : '';
 		unset($data['asset']);
-		$analisa_resiko['lingkungan'] 	= $data['lingkungan'];
+		$analisa_resiko['lingkungan'] 	= isset($data['lingkungan']) ? $data['lingkungan'] : '';
 		unset($data['lingkungan']);
-		$analisa_resiko['hukum'] 		= $data['hukum'];
+		$analisa_resiko['hukum'] 		= isset($data['hukum']) ? $data['hukum'] : '';
 		unset($data['hukum']);
 
 		// DATA ANALISA SWAKELOLA
-		$analisa_swakelola['waktu'] 	= $data['waktu'];
+		$analisa_swakelola['waktu'] 	= isset($data['waktu']) ? $data['waktu'] : '';
 		unset($data['waktu']);
-		$analisa_swakelola['biaya'] 	= $data['biaya'];
+		$analisa_swakelola['biaya'] 	= isset($data['biaya']) ? $data['biaya'] : '';
 		unset($data['biaya']);
-		$analisa_swakelola['tenaga'] 	= $data['tenaga'];
+		$analisa_swakelola['tenaga'] 	= isset($data['tenaga']) ? $data['tenaga'] : '';
 		unset($data['tenaga']);
-		$analisa_swakelola['bahan'] 	= $data['bahan'];
+		$analisa_swakelola['bahan'] 	= isset($data['bahan']) ? $data['bahan'] : '';
 		unset($data['bahan']);
-		$analisa_swakelola['peralatan'] = $data['peralatan'];
+		$analisa_swakelola['peralatan'] = isset($data['peralatan']) ? $data['peralatan'] : '';
 		unset($data['peralatan']);
 
-		if ($data['jwp_start'] != '' && $data['jwp_end'] != '') {
+		if (isset($data['jwp_start']) && isset($data['jwp_end']) && $data['jwp_start'] != '' && $data['jwp_end'] != '') {
 			$data['jwp_start'] 	= $data['jwp_start'];
 			$data['jwp_end'] 	= $data['jwp_end'];
 		} else {
 			$data['jwp_start'] 	= null;
 			$data['jwp_end'] 	= null;
 		}
-		$data['tipe_pengadaan'] 	= $data['pengadaan'];
+		$data['tipe_pengadaan'] 	= isset($data['pengadaan']) ? $data['pengadaan'] : '';
 		$data['id_division']	= $this->session->userdata('admin')['id_division'];
-		$data['idr_anggaran'] 	= str_replace(',', '', $data['idr_anggaran']);
-		$data['usd_anggaran'] 	= str_replace(',', '', $data['usd_anggaran']);
+		$data['idr_anggaran'] 	= isset($data['idr_anggaran']) ? str_replace(',', '', $data['idr_anggaran']) : '0';
+		$data['usd_anggaran'] 	= isset($data['usd_anggaran']) ? str_replace(',', '', $data['usd_anggaran']) : '0';
 		unset($data['validation']);
 		unset($data['izin_file']);
 		unset($data['type']);
 		unset($data['pengadaan']);
-		$data['sistem_kontrak']	= json_encode($data['sistem_kontrak']);
+		$data['sistem_kontrak']	= isset($data['sistem_kontrak']) ? json_encode($data['sistem_kontrak']) : '[]';
 		$usulan = $this->input->post('type_usulan');
 		unset($data['type_usulan']);
 
 		// Halaman Intro Pertama
 		if ($_page == "intro") {
 			echo json_encode(array('status' => 'success'));
+			return; // Exit after handling intro step
 
 			// Halaman FPPBJ
 		} else if ($_page == "fppbj") {
-			$_validation = $this->formWizard['step'][$_page]['fppbj'];
-			// $this->form_validation->set_rules($_validation);
-			if ($data['jwpp_start']) {
+			$_validation = isset($this->formWizard['step'][$_page]['form']) ? $this->formWizard['step'][$_page]['form'] : array();
+			
+			// Set validation rules for FPPBJ step
+			$validation_rules = array();
+			if (is_array($_validation)) {
+				foreach ($_validation as $element) {
+					if (is_array($element) && isset($element['field']) && isset($element['rules'])) {
+						$validation_rules[] = $element;
+					}
+				}
+			}
+						
+			if (!empty($validation_rules)) {
+				$this->form_validation->reset_validation();
+				$this->form_validation->set_rules($validation_rules);
+				
+				// Run validation for FPPBJ step
+				if ($this->form_validation->run() == FALSE) {
+					// Validation failed - collect errors
+					$return['status'] = 'error';
+					$return['form'] = array();
+					
+					foreach($_validation as $value) {
+						if (!is_array($value) || !isset($value['field'])) {
+							continue;
+						}
+						
+						// Handle array fields (like date ranges)
+						if (is_array($value['field'])) {
+							foreach ($value['field'] as $field) {
+								if (!empty($field)) {
+									$error = form_error($field);
+									if (!empty($error)) {
+										$return['form'][$field] = strip_tags($error);
+									} else if (isset($value['rules']) && strpos($value['rules'], 'required') !== false) {
+										$label = isset($value['label']) ? $value['label'] : $field;
+										$return['form'][$field] = $label . ' harus diisi';
+									}
+								}
+							}
+						} else {
+							$error = form_error($value['field']);
+							if (!empty($error)) {
+								$return['form'][$value['field']] = strip_tags($error);
+							} else if (isset($value['rules']) && strpos($value['rules'], 'required') !== false) {
+								$label = isset($value['label']) ? $value['label'] : $value['field'];
+								$return['form'][$value['field']] = $label . ' harus diisi';
+							}
+						}
+					}
+					
+					echo json_encode($return);
+					return;
+				}
+			}
+			
+			// Additional custom validation
+			if (isset($data['jwpp_start']) && $data['jwpp_start']) {
 				// if (!$this->check_avail_date($data['jwpp_start'], $data['metode_pengadaan'])) {
 				// 	$form = [
 				// 		'jwpp_start' => 'Tanggal tidak sesuai'
@@ -645,8 +805,8 @@ class Pemaketan extends MY_Controller
 				// 	die;
 				// }
 			}
-			if ($data['jwpp_end']) {
-				if (!$this->check_end_date($data['jwpp_start'], $data['jwpp_end'])) {
+			if (isset($data['jwpp_end']) && $data['jwpp_end']) {
+				if (isset($data['jwpp_start']) && !$this->check_end_date($data['jwpp_start'], $data['jwpp_end'])) {
 					$form = [
 						'jwpp_start' => 'Tanggal akhir tidak boleh kurang dari tanggal mulai'
 					];
@@ -654,57 +814,70 @@ class Pemaketan extends MY_Controller
 					die;
 				}
 			}
-			if ($this->validation($_validation)) {
-			}
+			
+			// FPPBJ validation passed
+			echo json_encode(array('status' => 'success'));
+			return;
 			// Halaman Analisa Resiko
 		} else if ($_page == "resiko") {
 			echo json_encode(array('status' => 'success'));
+			return; // Exit after handling resiko step
 			// Halaman DPT 
 		} else if ($_page == "dpt") {
-			echo json_encode(array('status' => 'success'));
+			// Don't return here - let it continue to data insertion logic
 			// Halaman Analisa Swakelola
 		} else if ($_page == "swakelola") {
-			echo json_encode(array('status' => 'success'));
+			// Don't return here - let it continue to data insertion logic
 		} else {
 			// print_r($_page);
 			echo json_encode(array('status' => 'error'));
+			return; // Exit after error
 		}
 
 		if (
-			(($data['tipe_pengadaan'] == 'barang' || $data['tipe_pengadaan'] == 'jasa') && $data['metode_pengadaan'] != 3 && $_page == 'dpt') ||
-			(($data['tipe_pengadaan'] == 'barang' || $data['tipe_pengadaan'] == 'jasa') && $data['metode_pengadaan'] == 3 && $_page == 'swakelola')
+			((isset($data['tipe_pengadaan']) && ($data['tipe_pengadaan'] == 'barang' || $data['tipe_pengadaan'] == 'jasa')) && isset($data['metode_pengadaan']) && $data['metode_pengadaan'] != 3 && $_page == 'dpt') ||
+			((isset($data['tipe_pengadaan']) && ($data['tipe_pengadaan'] == 'barang' || $data['tipe_pengadaan'] == 'jasa')) && isset($data['metode_pengadaan']) && $data['metode_pengadaan'] == 3 && $_page == 'swakelola')
 		) {
 
 			/* INSERT FPPBJ */
 			$admin = $this->session->userdata('admin');
 			$rate = $this->db->get('tb_in_rate')->row_object();
 
-			$data['is_planning']	= $this->check_perencanaan_umum($data['year_anggaran'][0]);
-			$data['is_perencanaan'] = ($data['is_perencanaan'] == '') ? '2' : $data['is_perencanaan'];
-			$data['id_pic']			= ($admin['id_role'] == 6) ? $admin['id_user'] : '';
+			$data['is_planning']	= (isset($data['year_anggaran']) && is_array($data['year_anggaran']) && count($data['year_anggaran']) > 0) ? $this->check_perencanaan_umum($data['year_anggaran'][0]) : '';
+			$data['is_perencanaan'] = (isset($data['is_perencanaan']) && $data['is_perencanaan'] != '') ? $data['is_perencanaan'] : '2';
+			$data['id_pic']			= (isset($admin['id_role']) && $admin['id_role'] == 6 && isset($admin['id_user'])) ? $admin['id_user'] : '';
 
-			foreach ($data['idr_anggaran'] as $key => $value) {
-				$tr_price[$key]['idr_anggaran'] = ($data['usd_anggaran'][$key] != 0) ? $rate->value_in_idr * $data['usd_anggaran'][$key] : $value;
-				$tr_price[$key]['usd_anggaran'] = $data['usd_anggaran'][$key];
-				$tr_price[$key]['year_anggaran'] = $data['year_anggaran'][$key];
+			if (isset($data['idr_anggaran']) && is_array($data['idr_anggaran'])) {
+				foreach ($data['idr_anggaran'] as $key => $value) {
+					$usd_value = isset($data['usd_anggaran'][$key]) ? $data['usd_anggaran'][$key] : 0;
+					$tr_price[$key]['idr_anggaran'] = ($usd_value != 0) ? $rate->value_in_idr * $usd_value : $value;
+					$tr_price[$key]['usd_anggaran'] = $usd_value;
+					$tr_price[$key]['year_anggaran'] = isset($data['year_anggaran'][$key]) ? $data['year_anggaran'][$key] : '';
+				}
 			}
 
 			unset($data['idr_anggaran']);
 			unset($data['usd_anggaran']);
 			unset($data['year_anggaran']);
 
+			// Initialize budget values
+			$data['idr_anggaran'] = 0;
+			$data['usd_anggaran'] = 0;
 			$year_anggaran = '';
-			foreach ($tr_price as $key => $value) {
-				$data['idr_anggaran'] += $tr_price[$key]['idr_anggaran'];
-				$data['usd_anggaran'] += $tr_price[$key]['usd_anggaran'];
-				$year_anggaran .= $value['year_anggaran'] . ",";
+			
+			if (isset($tr_price) && is_array($tr_price)) {
+				foreach ($tr_price as $key => $value) {
+					$data['idr_anggaran'] += isset($tr_price[$key]['idr_anggaran']) ? $tr_price[$key]['idr_anggaran'] : 0;
+					$data['usd_anggaran'] += isset($tr_price[$key]['usd_anggaran']) ? $tr_price[$key]['usd_anggaran'] : 0;
+					$year_anggaran .= (isset($value['year_anggaran']) ? $value['year_anggaran'] : '') . ",";
+				}
 			}
 
-			$year_anggaran = substr($year_anggaran, substr($year_anggaran), -1);
+			$year_anggaran = rtrim($year_anggaran, ',');
 			$data['year_anggaran'] = $year_anggaran;
 
 			// INSERT FPPBJ
-			if ($admin['id_role'] == 3) {
+			if (isset($admin['id_role']) && $admin['id_role'] == 3) {
 				$data['is_approved'] = 2;
 			}
 
@@ -779,7 +952,8 @@ class Pemaketan extends MY_Controller
 				$analisa_resiko['detail'][$q]['lingkungan'] 	= $analisa_resiko['lingkungan'][$q];
 				$analisa_resiko['detail'][$q]['hukum']		 	= $analisa_resiko['hukum'][$q];
 			}
-			$analisa_resiko['id_fppbj'] = $this->session->userdata('fppbj')['id_fppbj'];
+			$fppbj_session = $this->session->userdata('fppbj');
+			$analisa_resiko['id_fppbj'] = isset($fppbj_session['id_fppbj']) ? $fppbj_session['id_fppbj'] : null;
 			$this->session->set_userdata('analisa_resiko', array('id' => $input, 'skor' => $analisa_resiko));
 
 			/* INSERT DPT */
@@ -787,9 +961,15 @@ class Pemaketan extends MY_Controller
 			$dpt_list['dpt'] 		= $this->input->post('type');
 			$dpt_list['usulan']		= $usulan;
 
-			$this->db->where('id_pengadaan', $this->session->userdata('fppbj')['id_fppbj'])->update('tr_history_pengadaan', array('dpt_list' => json_encode($dpt_list)));
+			$fppbj_session = $this->session->userdata('fppbj');
+			if (isset($fppbj_session['id_fppbj'])) {
+				$this->db->where('id_pengadaan', $fppbj_session['id_fppbj'])->update('tr_history_pengadaan', array('dpt_list' => json_encode($dpt_list)));
+			}
 
-			$input = $this->db->insert('tr_analisa_risiko', array('id_fppbj' => $this->session->userdata('fppbj')['id_fppbj'], 'dpt_list' => json_encode($dpt_list)));
+			$fppbj_session = $this->session->userdata('fppbj');
+			if (isset($fppbj_session['id_fppbj'])) {
+				$input = $this->db->insert('tr_analisa_risiko', array('id_fppbj' => $fppbj_session['id_fppbj'], 'dpt_list' => json_encode($dpt_list)));
+			}
 
 			$input = $this->db->insert_id();
 
@@ -799,19 +979,22 @@ class Pemaketan extends MY_Controller
 			}
 
 			foreach ($analisa_risiko['skor']['detail'] as $key => $value) {
-				$analisa_risiko['skor']['detail'][$key]['id_pengadaan'] = $this->session->userdata('fppbj')['id_fppbj'];
+				$fppbj_session = $this->session->userdata('fppbj');
+				$analisa_risiko['skor']['detail'][$key]['id_pengadaan'] = isset($fppbj_session['id_fppbj']) ? $fppbj_session['id_fppbj'] : null;
 				$this->db->insert('tr_history_analisa_resiko', $analisa_risiko['skor']['detail'][$key]);
 			}
 
 
 			/* INSERT SWAKELOLA */
-			$analisa_swakelola['id_fppbj'] = $this->session->userdata('fppbj')['id_fppbj'];
+			$fppbj_session = $this->session->userdata('fppbj');
+			$analisa_swakelola['id_fppbj'] = isset($fppbj_session['id_fppbj']) ? $fppbj_session['id_fppbj'] : null;
 
 			$input 		= $this->db->insert('tr_analisa_swakelola', $analisa_swakelola);
 			$input 		= $this->db->insert_id();
 
 			unset($analisa_swakelola['id_fppbj']);
-			$analisa_swakelola['id_pengadaan'] = $this->session->userdata('fppbj')['id_fppbj'];
+			$fppbj_session = $this->session->userdata('fppbj');
+			$analisa_swakelola['id_pengadaan'] = isset($fppbj_session['id_fppbj']) ? $fppbj_session['id_fppbj'] : null;
 			$this->db->insert('tr_history_swakelola', $analisa_swakelola);
 		}
     }
@@ -2072,7 +2255,7 @@ class Pemaketan extends MY_Controller
         } else if ($swakelola['biaya'] == 2) {
             $biaya_swakelola = 'Biaya pelaksanaan pekerjaan > 50 Bulan s.d < 100 juta';
         } else {
-            $biaya_swakelola = 'Biaya pelaksanaan pekerjaan ≥ 6 100 juta';
+            $biaya_swakelola = 'Biaya pelaksanaan pekerjaan ≥ 100 juta';
         }
 
         if ($swakelola['tenaga'] == 1) {
@@ -2223,7 +2406,16 @@ class Pemaketan extends MY_Controller
                 'label' => 'Batal'
             )
         );
-        $this->form_validation->set_rules($this->form['form']);
+        // Filter form elements to only include valid validation rules
+        $validation_rules = array();
+        foreach ($this->form['form'] as $element) {
+            if (isset($element['field']) && isset($element['rules'])) {
+                $validation_rules[] = $element;
+            }
+        }
+        if (!empty($validation_rules)) {
+            $this->form_validation->set_rules($validation_rules);
+        }
         echo json_encode($this->form);
     }
 
@@ -2233,7 +2425,16 @@ class Pemaketan extends MY_Controller
         $fppbj = $this->fm->selectData($id);
         $admin = $this->session->userdata('admin');
 
-        $this->form_validation->set_rules($this->form_edit['form']);
+        // Filter form elements to only include valid validation rules
+        $validation_rules = array();
+        foreach ($this->form_edit['form'] as $element) {
+            if (isset($element['field']) && isset($element['rules'])) {
+                $validation_rules[] = $element;
+            }
+        }
+        if (!empty($validation_rules)) {
+            $this->form_validation->set_rules($validation_rules);
+        }
         //$this->form= $this->form_edit;
         if ($this->validation($this->form_edit)) {
 

@@ -67,6 +67,11 @@ class Fp3_model extends MY_Model
 	{
 		$admin = $this->session->userdata('admin');
 
+		// Ensure $id_division is a string, not an array
+		if (is_array($id_division) || $id_division == '') {
+			$id_division = "''"; // Empty string for SQL
+		}
+
 		if ($year != '') {
 			$year_anggaran = " AND b.entry_stamp LIKE '%" . $year . "%'";
 		} else {
@@ -76,7 +81,7 @@ class Fp3_model extends MY_Model
 		if ($id_fppbj == '0' || $id_fppbj == '') {
 			$id_fppbj = '';
 		} else {
-			$id_fppbj = 'AND a.id_fppbj = ' . $id_fppbj;
+			$id_fppbj = ' AND a.id_fppbj = ' . $id_fppbj;
 		}
 
 		$query = "	SELECT
@@ -182,7 +187,10 @@ class Fp3_model extends MY_Model
 
 	public function get_data_fppbj($id)
 	{
-		$query = "SELECT * FROM ms_fppbj WHERE id = " . $id;
+		if(empty($id) || !is_numeric($id)){
+			return array();
+		}
+		$query = "SELECT * FROM ms_fppbj WHERE id = " . (int)$id;
 		return $this->db->query($query)->row_array();
 	}
 
@@ -195,7 +203,10 @@ class Fp3_model extends MY_Model
 		unset($data['fp3_type']);
 		// $perubahan = $this->cekPerubahan($data);
 
-		$get_data = "SELECT * FROM ms_fppbj WHERE id = " . $data['id_fppbj'];
+		if(empty($data['id_fppbj']) || !is_numeric($data['id_fppbj'])){
+			return false;
+		}
+		$get_data = "SELECT * FROM ms_fppbj WHERE id = " . (int)$data['id_fppbj'];
 		$get_fppbj = $this->db->query($get_data)->row_array();
 
 		if ($fp3_type == 'ubah') {

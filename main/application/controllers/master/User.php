@@ -63,7 +63,17 @@ class User extends MY_Controller {
 		$this->updateUrl = 'master/user/update';
 		$this->deleteUrl = 'master/user/delete/';
 		$this->getData = $this->um->getData($this->form);
-		$this->form_validation->set_rules($this->form['form']);
+		
+		// Filter form elements to only include valid validation rules
+		$validation_rules = array();
+		foreach ($this->form['form'] as $element) {
+			if (isset($element['field']) && isset($element['rules'])) {
+				$validation_rules[] = $element;
+			}
+		}
+		if (!empty($validation_rules)) {
+			$this->form_validation->set_rules($validation_rules);
+		}
 	}
 	public function index($id = null){
 		$this->breadcrumb->addlevel(1, array(

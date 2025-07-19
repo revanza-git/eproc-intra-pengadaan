@@ -47,7 +47,17 @@ class Rekap extends MY_Controller {
 		$this->getData 		= $this->pm->getDataRekap($year);
 		$this->getDataYear	= $this->pm->getDataYear($year);
 		$this->approveURL	= site_url('/perencanaan/rekap/save/');
-		$this->form_validation->set_rules($this->form['form']);
+		
+		// Filter form elements to only include valid validation rules
+		$validation_rules = array();
+		foreach ($this->form['form'] as $element) {
+			if (isset($element['field']) && isset($element['rules'])) {
+				$validation_rules[] = $element;
+			}
+		}
+		if (!empty($validation_rules)) {
+			$this->form_validation->set_rules($validation_rules);
+		}
 
 	}
 
