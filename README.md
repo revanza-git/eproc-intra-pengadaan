@@ -4,8 +4,23 @@
 [![CodeIgniter](https://img.shields.io/badge/CodeIgniter-3.x-orange.svg)](https://codeigniter.com)
 [![MySQL](https://img.shields.io/badge/MySQL-5.7+-green.svg)](https://mysql.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Last Updated](https://img.shields.io/badge/Last%20Updated-January%202025-brightgreen.svg)](#)
 
-A comprehensive web-based **Electronic Procurement System** built with CodeIgniter 3 framework, designed for managing the entire procurement lifecycle from planning to execution. This system provides admin-only access for internal procurement management.
+A comprehensive web-based **Electronic Procurement System** built with CodeIgniter 3 framework, designed for managing the entire procurement lifecycle from planning to execution. This system provides admin-only access for internal procurement management with enhanced security features and VMS integration.
+
+## 🎯 Recent Updates (January 2025)
+
+### 🔐 **Enhanced Security & Authentication**
+- **Cross-Application Logout**: Implemented secure logout mechanism across Main and VMS applications
+- **Session Management**: Enhanced session handling with proper cleanup and security tokens
+- **Activity Logging**: Comprehensive user activity tracking with timestamp logging
+- **VMS Integration**: Improved integration with Vendor Management System for seamless authentication
+
+### ⚡ **Performance & UX Improvements**
+- **Optimized Queries**: Database query optimization for better performance
+- **Error Handling**: Enhanced error handling and user feedback
+- **Security Tokens**: Added logout tokens for secure cross-app communication
+- **Session Validation**: Improved session validation and security checks
 
 ## 📑 Table of Contents
 
@@ -51,6 +66,51 @@ A comprehensive web-based **Electronic Procurement System** built with CodeIgnit
 - **Role-Based Access Control** - Different admin role permissions
 - **Session Management** - Secure session handling
 - **Activity Logging** - Complete user activity tracking
+
+## 🔐 Enhanced Security Features
+
+### 🛡️ **Cross-Application Security**
+The system now includes advanced security features for multi-application environments:
+
+```php
+// Enhanced logout with cross-app session clearing
+public function logout(){
+    // Step 1: Log user activity before session destruction
+    $admin_data = $this->session->userdata('admin');
+    
+    if($admin_data && isset($admin_data['id_user'])){
+        $activity = array(
+            'id_user'		=>	$admin_data['id_user'],
+            'activity'		=>	$admin_data['name']." Telah Logout",
+            'activity_date' => date('Y-m-d H:i:s')
+        );
+        $this->db->insert('tr_log_activity',$activity);
+    }
+    
+    // Step 2: Clear local session
+    $this->session->sess_destroy();
+    
+    // Step 3: Clear VMS session if originated from VMS
+    if ($admin_data && isset($admin_data['originated_from_vms'])) {
+        $this->clear_vms_session($admin_data);
+    }
+    
+    // Step 4: Redirect to secure logout completion
+    redirect('http://local.eproc.vms.com/app/main/logout?from_main=1&logout_complete=1');
+}
+```
+
+### 🔒 **VMS Integration Security**
+- **Secure Token Generation**: SHA-256 hashed tokens for logout verification
+- **Session Origin Tracking**: Track sessions originating from VMS
+- **Cross-App Logout API**: RESTful API for secure cross-application logout
+- **Timeout Protection**: Configurable timeout for external API calls
+
+### 📊 **Activity Monitoring**
+- **Complete Audit Trail**: All user actions logged with timestamps
+- **Login/Logout Tracking**: Detailed session management logging
+- **Security Event Logging**: Failed login attempts and security events
+- **Performance Monitoring**: Query execution time and memory usage tracking
 
 ## 🏗️ System Architecture
 
@@ -366,246 +426,136 @@ Before installation, ensure you have:
 - **Composer**: For dependency management (optional)
 - **Git**: For version control
 
-## 🚀 Installation
+## 🚀 Installation & Setup
 
-### 1. **Clone Repository**
+### 1. **System Requirements**
 ```bash
-git clone https://github.com/revanza-git/eproc-intra-pengadaan.git
+# Required Software
+- PHP 5.6+ (recommended: C:\tools\php56 on Windows)
+- MySQL 5.7.44+ (default port: 3307)
+- Web Server (Apache/Nginx/IIS)
+- Git for version control
+```
+
+### 2. **Quick Setup Guide**
+```bash
+# Clone the repository
+git clone https://github.com/your-org/eproc-intra-pengadaan.git
 cd eproc-intra-pengadaan
-```
 
-### 2. **Web Server Configuration**
+# Set up virtual hosts (Windows IIS example)
+# Add to hosts file: 127.0.0.1 local.eproc.intra.com
+# Configure IIS sites for main and pengadaan applications
 
-#### Apache (.htaccess)
-```apache
-RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ index.php/$1 [L]
-```
-
-#### Nginx
-```nginx
-location / {
-    try_files $uri $uri/ /index.php$is_args$args;
-}
-```
-
-### 3. **Database Setup**
-
-#### Create Databases
-```sql
+# Database setup
+mysql -u root -p -h 127.0.0.1 -P 3307
 CREATE DATABASE eproc_perencanaan CHARACTER SET utf8 COLLATE utf8_general_ci;
-CREATE DATABASE eproc_pengadaan CHARACTER SET utf8 COLLATE utf8_general_ci;
+CREATE DATABASE eproc CHARACTER SET utf8 COLLATE utf8_general_ci;
 ```
 
-#### Database Schema Overview
-
-The system uses a comprehensive relational database design to manage the complete procurement lifecycle:
-
-```mermaid
-erDiagram
-    USERS {
-        int user_id PK
-        string username
-        string email
-        string password_hash
-        string role
-        datetime created_at
-        boolean is_active
-    }
-    
-    PERENCANAAN {
-        int id PK
-        string nama_kegiatan
-        decimal anggaran
-        date target_date
-        string status
-        int user_id FK
-        datetime created_at
-    }
-    
-    FPPBJ {
-        int id PK
-        string nomor_fppbj
-        int perencanaan_id FK
-        string vendor_info
-        decimal nilai_kontrak
-        date tanggal_penetapan
-        string status
-    }
-    
-    FKPBJ {
-        int id PK
-        string nomor_fkpbj
-        int fppbj_id FK
-        string komite_members
-        date tanggal_komite
-        string keputusan
-        text catatan
-    }
-    
-    VENDORS {
-        int vendor_id PK
-        string nama_vendor
-        string alamat
-        string contact_info
-        string npwp
-        string classification
-        float rating
-        boolean is_blacklisted
-    }
-    
-    PEMAKETAN {
-        int id PK
-        string nama_paket
-        int perencanaan_id FK
-        decimal total_nilai
-        string description
-        string status
-        datetime created_at
-    }
-    
-    PROCUREMENT {
-        int id PK
-        string procurement_number
-        int pemaketan_id FK
-        int vendor_id FK
-        decimal contract_value
-        date start_date
-        date end_date
-        string status
-    }
-    
-    ASSESSMENTS {
-        int id PK
-        int vendor_id FK
-        int procurement_id FK
-        float technical_score
-        float financial_score
-        float total_score
-        text notes
-        int assessor_id FK
-    }
-    
-    AUCTIONS {
-        int id PK
-        int procurement_id FK
-        datetime start_time
-        datetime end_time
-        decimal starting_price
-        decimal winning_price
-        int winning_vendor_id FK
-        string status
-    }
-    
-    CONTRACTS {
-        int id PK
-        string contract_number
-        int procurement_id FK
-        int vendor_id FK
-        decimal contract_value
-        date signing_date
-        date completion_date
-        string status
-        text terms
-    }
-    
-    AUDIT_LOGS {
-        int id PK
-        int user_id FK
-        string action
-        string table_name
-        int record_id
-        text old_values
-        text new_values
-        datetime timestamp
-    }
-    
-    EXCHANGE_RATES {
-        int id PK
-        string currency_code
-        decimal rate_to_idr
-        date effective_date
-        boolean is_active
-    }
-    
-    %% Relationships
-    USERS ||--o{ PERENCANAAN : creates
-    USERS ||--o{ AUDIT_LOGS : performs
-    USERS ||--o{ ASSESSMENTS : assesses
-    
-    PERENCANAAN ||--o{ FPPBJ : generates
-    PERENCANAAN ||--o{ PEMAKETAN : includes
-    
-    FPPBJ ||--|| FKPBJ : requires
-    
-    PEMAKETAN ||--o{ PROCUREMENT : executes
-    
-    VENDORS ||--o{ PROCUREMENT : participates
-    VENDORS ||--o{ ASSESSMENTS : evaluated_in
-    VENDORS ||--o{ AUCTIONS : bids_in
-    VENDORS ||--o{ CONTRACTS : signs
-    
-    PROCUREMENT ||--|| AUCTIONS : conducted_via
-    PROCUREMENT ||--o{ ASSESSMENTS : requires
-    PROCUREMENT ||--|| CONTRACTS : results_in
-    
-    AUCTIONS ||--|| CONTRACTS : determines
-```
-
-#### Default Database Configuration
-```php
-// main/application/config/database.php
-$db['default'] = array(
-    'hostname' => '127.0.0.1',
-    'port'     => '3307',
-    'username' => 'root',
-    'password' => 'Nusantara1234',
-    'database' => 'eproc_perencanaan',
-    'dbdriver' => 'mysqli',
-    // ... other settings
-);
-```
-
-### 4. **Application Configuration**
-
-#### Set Base URLs
+### 3. **Environment Configuration**
 ```php
 // main/application/config/config.php
 $config['base_url'] = 'http://local.eproc.intra.com/main/';
 $config['pengadaan_url'] = 'http://local.eproc.intra.com/pengadaan/';
 $config['vms_url'] = 'http://local.eproc.vms.com/';
+$config['vms_pengadaan_url'] = 'http://local.eproc.vms.com/pengadaan/';
+
+// Database configuration with enhanced security
+$db['default'] = array(
+    'hostname' => '127.0.0.1',
+    'port'     => '3307',
+    'username' => 'eproc_user',  // Use dedicated user instead of root
+    'password' => 'secure_password',
+    'database' => 'eproc_perencanaan',
+    'dbdriver' => 'mysqli',
+    'pconnect' => FALSE,
+    'db_debug' => (ENVIRONMENT !== 'production'),
+    'cache_on' => TRUE,
+    'cachedir' => APPPATH.'cache/',
+    'char_set' => 'utf8',
+    'dbcollat' => 'utf8_general_ci',
+);
 ```
 
-### 5. **File Permissions**
+## 🔧 Advanced Configuration
+
+### 🛠️ **Security Settings**
+```php
+// Enhanced security configuration
+$config['encryption_key'] = 'your-32-character-encryption-key-here';
+$config['sess_driver'] = 'database';
+$config['sess_cookie_name'] = 'eproc_session';
+$config['sess_expiration'] = 7200; // 2 hours
+$config['sess_save_path'] = 'ci_sessions';
+$config['sess_match_ip'] = TRUE;
+$config['sess_time_to_update'] = 300; // 5 minutes
+$config['sess_regenerate_destroy'] = TRUE;
+
+// Cross-app communication settings
+$config['logout_token_salt'] = 'your-logout-salt-here';
+$config['vms_timeout'] = 10; // seconds
+```
+
+### 📊 **Database Optimization**
+```sql
+-- Create optimized indexes for better performance
+CREATE INDEX idx_admin_login ON ms_admin(username, password);
+CREATE INDEX idx_activity_user_date ON tr_log_activity(id_user, activity_date);
+CREATE INDEX idx_session_timestamp ON ci_sessions(timestamp);
+
+-- Regular maintenance
+OPTIMIZE TABLE ms_admin;
+OPTIMIZE TABLE tr_log_activity;
+OPTIMIZE TABLE ci_sessions;
+```
+
+## 🧪 Testing & Development
+
+### 🔍 **Testing Endpoints**
 ```bash
-# Linux/Mac
-chmod -R 755 main/application/cache/
-chmod -R 755 main/application/logs/
-chmod -R 755 pengadaan/application/cache/
-chmod -R 755 pengadaan/application/logs/
+# Test authentication
+GET  /main/test_login
+POST /main/check
+GET  /main/from_eks?key={vms_key}
 
-# Windows
-# Ensure IIS_IUSRS has write permissions to cache and logs directories
+# Test logout functionality  
+GET  /main/logout
+POST /main/api_logout
+GET  /main/logout_complete?from_vms=1&logout_complete=1
+
+# Health check endpoints
+GET  /main/                     # Should redirect based on session
+GET  /pengadaan/               # Procurement app health check
 ```
 
-## 🌐 Application URLs
+### 🐛 **Debug Mode**
+```php
+// Enable comprehensive debugging (development only)
+define('ENVIRONMENT', 'development');
 
-- **Main Planning App**: `http://local.eproc.intra.com/main/`
-- **Procurement App**: `http://local.eproc.intra.com/pengadaan/`
-- **VMS Integration**: `http://local.eproc.vms.com/`
+// View detailed error logs
+http://local.eproc.intra.com/error_logger.php
 
-## 👥 Default Admin Account
+// Database query profiling
+$this->output->enable_profiler(TRUE);
+```
 
-For development/testing purposes:
+## 📱 Browser Compatibility & Responsive Design
 
-- **Username**: `admin`
-- **Password**: `admin123`
-- **Role**: Super Administrator
-- **Access**: Full system access
+| Browser | Version | Status | Notes |
+|---------|---------|--------|-------|
+| Chrome  | 60+     | ✅ Full Support | Recommended |
+| Firefox | 55+     | ✅ Full Support | All features working |
+| Safari  | 10+     | ✅ Full Support | iOS compatible |
+| Edge    | 40+     | ✅ Full Support | Windows 10+ |
+| IE      | 11      | ⚠️ Limited | Basic functionality only |
 
-> ⚠️ **Security Note**: Change default credentials in production environment
+### 📱 **Mobile Responsiveness**
+- **Tablet Support**: Optimized for iPad and Android tablets
+- **Responsive Tables**: DataTables with mobile-friendly scrolling
+- **Touch-Friendly**: Large buttons and touch targets
+- **Adaptive Layout**: Bootstrap-based responsive grid system
 
 ## 📁 Directory Structure
 
@@ -639,148 +589,229 @@ eproc-intra-pengadaan/
 └── README.md                     # This file
 ```
 
-## 🔧 Development Setup
+## 🔍 Troubleshooting Guide
 
-### Enable Error Logging
+### Common Issues & Solutions
+
+#### 🚫 **Session Issues**
 ```php
-// Add to main/index.php
-require_once(__DIR__ . '/../enable_error_logging.php');
+// Problem: Session not persisting across requests
+// Solution: Check session configuration
+$config['sess_driver'] = 'database';
+$config['sess_save_path'] = 'ci_sessions';
+
+// Ensure ci_sessions table exists
+CREATE TABLE `ci_sessions` (
+    `id` varchar(128) NOT NULL,
+    `ip_address` varchar(45) NOT NULL,
+    `timestamp` int(10) unsigned DEFAULT 0 NOT NULL,
+    `data` blob NOT NULL,
+    KEY `ci_sessions_timestamp` (`timestamp`)
+);
 ```
 
-### View Error Logs
-Access: `http://local.eproc.intra.com/error_logger.php`
+#### 🔐 **VMS Integration Issues**
+```bash
+# Problem: VMS logout not working
+# Check: VMS endpoint accessibility
+curl -X POST http://local.eproc.vms.com/app/main/api_logout \
+  -d "admin_id=123&logout_token=abc123&source=main_project"
 
-### Test Login (Development Only)
-Access: `http://local.eproc.intra.com/main/test_login`
+# Verify: Network connectivity and timeouts
+ping local.eproc.vms.com
+```
 
-## 📊 Key Modules
-
-### Planning (Perencanaan)
-- **Form FPPBJ**: Penetapan Penyedia Barang/Jasa
-- **Form FKPBJ**: Komite Penetapan Barang/Jasa
-- **Pemaketan**: Package grouping and management
-- **Master Data**: Currency, users, divisions
-
-### Procurement (Pengadaan)
-- **Vendor Management**: Registration, assessment, blacklist
-- **Auction System**: Electronic bidding process
-- **Contract Management**: Contract lifecycle
-- **Evaluation**: Vendor and proposal assessment
-
-## 🔌 API Integration
-
-The system integrates with:
-- **VMS (Vendor Management System)**: External vendor authentication
-- **Key-Value Store**: Inter-application communication
-- **Export Services**: Document generation services
-
-## 📱 Browser Support
-
-- **Chrome** 60+
-- **Firefox** 55+
-- **Safari** 10+
-- **Edge** 40+
-- **Internet Explorer** 11+
-
-## 🧪 Testing
-
-### Admin Test Login
+#### 💾 **Database Connection Issues**
 ```php
-// Access test login interface
-http://local.eproc.intra.com/main/test_login
+// Problem: Database connection failed
+// Check: Database configuration and connectivity
+mysql -u eproc_user -p -h 127.0.0.1 -P 3307
 
-// Direct admin login
-http://local.eproc.intra.com/main/test_login/direct_admin_login
+// Solution: Verify credentials and port availability
+netstat -an | find "3307"
 ```
 
-### Database Testing
+### 📝 **Error Log Analysis**
+```bash
+# View application logs
+tail -f main/application/logs/log-*.php
+tail -f pengadaan/application/logs/log-*.php
+
+# Check PHP error logs
+tail -f /var/log/php_errors.log  # Linux
+Get-Content "C:\php\logs\php_errors.log" -Wait  # Windows PowerShell
+```
+
+## 📈 Performance Optimization
+
+### ⚡ **Caching Strategy**
+```php
+// Database query caching
+$this->db->cache_on();
+$query = $this->db->get('ms_vendor');
+$this->db->cache_off();
+
+// Page output caching
+$this->output->cache(60); // Cache for 60 minutes
+
+// Asset optimization
+// Use minified CSS/JS in production
+```
+
+### 🗄️ **Database Performance**
 ```sql
--- Check admin user
-SELECT * FROM ms_admin WHERE name = 'admin';
+-- Monitor slow queries
+SHOW PROCESSLIST;
+SHOW FULL PROCESSLIST;
 
--- Check login credentials
-SELECT * FROM ms_login WHERE username = 'admin';
+-- Analyze table performance
+EXPLAIN SELECT * FROM ms_admin WHERE username = 'admin';
+
+-- Regular maintenance
+ANALYZE TABLE ms_admin;
+CHECK TABLE ms_admin;
 ```
 
-## 🔒 Security Considerations
+## 🔄 Deployment Guide
 
-1. **Admin-Only Access**: System restricts access to admin users only
-2. **VMS Integration**: Production authentication through VMS system
-3. **Session Security**: Secure session management and validation
-4. **Input Validation**: Form validation and data sanitization
-5. **SQL Injection Prevention**: Parameterized queries throughout
-6. **XSS Protection**: Output escaping and input filtering
+### 🌐 **Production Deployment**
+```bash
+# 1. Environment setup
+cp .env.example .env
+# Edit .env with production values
 
-## 📈 Performance
+# 2. Security hardening
+chmod 644 .env
+chmod -R 755 main/application/
+chmod -R 700 main/application/config/
+chmod -R 777 main/application/cache/
+chmod -R 777 main/application/logs/
 
-- **Caching**: Database query caching enabled
-- **Asset Optimization**: Minified CSS/JS files
-- **Database Indexing**: Optimized database queries
-- **Session Management**: Efficient session handling
+# 3. Database migration
+mysql -u root -p < database/schema.sql
+mysql -u root -p < database/data.sql
 
-## 🛠️ Maintenance
-
-### Log Management
-- **Auto Cleanup**: Logs older than 30 days auto-deleted
-- **File Rotation**: Daily log file rotation
-- **Performance Tracking**: Execution time and memory monitoring
-
-### Database Maintenance
-```sql
--- Regular maintenance queries
-OPTIMIZE TABLE ms_admin;
-OPTIMIZE TABLE ms_login;
-OPTIMIZE TABLE tr_log_activity;
+# 4. Asset optimization
+npm run build  # If using build tools
 ```
 
-## 🤝 Contributing
+### 🔒 **Production Security Checklist**
+- [ ] Change default admin credentials
+- [ ] Enable HTTPS/SSL certificates
+- [ ] Configure firewall rules
+- [ ] Set up database user with minimal privileges
+- [ ] Enable error logging (disable display_errors)
+- [ ] Configure session security settings
+- [ ] Set up backup procedures
+- [ ] Enable intrusion detection
+- [ ] Configure rate limiting
+- [ ] Set up monitoring and alerting
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+## 📚 API Documentation
 
-## 📄 License
+### 🔌 **Authentication API**
+```http
+# Login validation
+POST /main/check
+Content-Type: application/x-www-form-urlencoded
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+username=admin&password=admin123
+```
 
-## 📞 Support
+### 🔐 **Cross-App Logout API**
+```http
+# Clear session from external app
+POST /main/api_logout
+Content-Type: application/x-www-form-urlencoded
 
-## 📊 Understanding the Diagrams
+admin_id=123&logout_token=sha256_hash&source=vms_app
+```
 
-This README includes comprehensive visual documentation to help understand the system:
+### 📊 **Data Export API**
+```http
+# Export procurement data
+GET /main/export/fppbj?year=2025&format=excel
+GET /main/export/vendor?format=pdf&date_from=2025-01-01
 
-### 🏗️ **System Architecture Diagram**
-- **Blue boxes** (light blue): Main Application (Planning) modules
-- **Purple boxes** (light purple): Pengadaan Application (Procurement) modules  
-- **Orange boxes**: Database storage systems
-- **Green boxes**: External integrations (VMS)
-- **Yellow boxes**: Authentication and security systems
+# Response format
+{
+    "status": "success",
+    "file_url": "/downloads/export_20250115.xlsx",
+    "expires_at": "2025-01-15T16:30:00Z"
+}
+```
 
-### 🔄 **Procurement Workflow Diagram**  
-- **Green start/end**: Process start and completion points
-- **Blue boxes**: Planning phase activities (Main App)
-- **Purple boxes**: Procurement execution activities (Pengadaan App)
-- **Orange decision points**: Evaluation and approval steps
-- **Dotted lines**: Administrative oversight and data flow
+## 🤝 Contributing Guidelines
 
-### 📊 **Database Schema (ERD)**
-- **PK**: Primary Key fields
-- **FK**: Foreign Key relationships
-- **Lines with symbols**: Entity relationships (one-to-many, one-to-one)
-- **Table structure**: Shows all major entities and their attributes
+### 📋 **Development Workflow**
+1. **Fork** the repository
+2. **Create** feature branch (`git checkout -b feature/enhanced-security`)
+3. **Follow** coding standards (PSR-2 for PHP)
+4. **Write** unit tests for new features
+5. **Update** documentation
+6. **Submit** pull request with detailed description
 
-### 🛠️ **Technology Architecture**
-- **Layer-based view**: From client browsers down to database storage
-- **Color coding**: Different technology layers and their connections
-- **Arrows**: Data flow and communication between components
+### 📝 **Code Standards**
+```php
+// PHP coding style
+class SampleController extends CI_Controller {
+    
+    public function __construct() {
+        parent::__construct();
+        // Load required models/libraries
+    }
+    
+    /**
+     * Sample method with proper documentation
+     * @param int $id User ID
+     * @return array Response data
+     */
+    public function sampleMethod($id) {
+        // Input validation
+        if (!is_numeric($id)) {
+            return ['error' => 'Invalid ID format'];
+        }
+        
+        // Business logic
+        $result = $this->model->getData($id);
+        
+        // Return structured response
+        return [
+            'status' => 'success',
+            'data' => $result
+        ];
+    }
+}
+```
 
-For support and questions:
-- **Documentation**: Check inline code documentation
-- **Issues**: Create GitHub issues for bugs
-- **Development**: Follow CodeIgniter 3 best practices
+### 🧪 **Testing Requirements**
+- **Unit Tests**: All new functions must have unit tests
+- **Integration Tests**: API endpoints require integration tests
+- **Security Tests**: Authentication and authorization testing
+- **Performance Tests**: Database query optimization verification
+
+## 📞 Support & Community
+
+### 🆘 **Getting Help**
+- **Documentation**: Check this README and inline code comments
+- **Issues**: Create GitHub issues for bugs and feature requests
+- **Discussions**: Use GitHub Discussions for questions
+- **Code Review**: All PRs require code review before merging
+
+### 🔗 **Useful Links**
+- [CodeIgniter 3 Documentation](https://codeigniter.com/userguide3/)
+- [PHP 5.6 Documentation](https://www.php.net/manual/en/)
+- [MySQL 5.7 Reference](https://dev.mysql.com/doc/refman/5.7/en/)
+- [Bootstrap Documentation](https://getbootstrap.com/docs/)
 
 ---
 
-**Note**: This system is designed for internal procurement management with admin-only access. All authentication in production should go through the proper VMS system integration. 
+## 📄 License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+---
+
+**🏛️ E-Procurement Intra System** - *Streamlining procurement processes with enterprise-grade security and reliability.*
+
+*Last Updated: January 2025 | Version: 2.1.0* 
